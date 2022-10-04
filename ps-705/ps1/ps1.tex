@@ -1,0 +1,232 @@
+\documentclass[11pt,a4paper]{amsart}
+\usepackage{amssymb,latexsym}
+\usepackage{graphicx}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{axiom}{Axiom}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
+\newtheorem*{remark*}{Remark}
+\newtheorem*{notation*}{Notation}
+\usepackage{geometry}
+\geometry{a4paper,left=2cm,right=2cm,top=1cm,bottom=1cm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\usepackage{ulem} % various underlines
+\usepackage{hyperref} % to insert URL 
+\usepackage{graphicx} % to insert illustration
+\usepackage[mathscr]{eucal} % to express a collection of sets
+\usepackage{bm} % bold font in equation environment
+\usepackage{color} % color some text
+\usepackage{framed} % to add a frame 
+\usepackage{tikz}
+\usepackage{bbm} % to type blackboard math characters
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+		\node[shape=circle,draw,inner sep=1pt] (char) {#1};}} % circled numbers
+\usepackage{float}%do not auto repositioning
+% $\uppercase\expandafter{\romannumeral1}$ Roman numeral
+%	\begin{figure}[hbt]
+	%{\centering \includegraphics[scale=0.78]{ring_algebra_semi}}
+	%\caption{ring \& algebra \& semi-}\label{F:ring_algebra_semi}
+	%\end{figure}
+	
+\begin{document}
+\title{Problem Set 1}
+\author{Jialiang Chen}
+\date{\today}
+\maketitle
+
+\textbf{Problem $1$.}\hfill\par 
+
+\vspace{5pt}
+
+(a). To compute the ATE, we simply supply $Y_{1} = 3 + U_{1}$ and $Y_{0} = 2 + U_{0}$ into the definition and get
+\[	\operatorname{ATE} = \mathbb{E}[Y_{1} - Y_{0}] = \mathbb{E}[3 + U_{1} -  2 - U_{0} ] = 1.	\]
+(We used the zero mean assumption here.)
+\vspace{5pt}
+
+(b). See the dofile. \par 
+
+\vspace{5pt}
+
+(c). Using our simulation draws, we have $\operatorname{ATE} =  1.0015$ (very close to the real ATE, as we expected), $\operatorname{ATET} =   0.74$ and  $\operatorname{ATEU} =   2.38$. The OLS estimate is given by 
+
+\vspace{10pt}
+
+\begin{table}[hb]
+	\caption{\label{tb:nonrand} The OLS Estimate for Nonrandom Assignment}
+	{
+	\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+	\begin{tabular}{l*{1}{c}}
+		\hline\hline
+		&\multicolumn{1}{c}{(1)}\\
+		&\multicolumn{1}{c}{Y}\\
+		\hline
+		D           &       1.453\sym{***}\\
+		&     (56.09)         \\
+		[1em]
+		\_cons      &       1.394\sym{***}\\
+		&     (58.69)         \\
+		\hline
+		\(N\)       &       10000         \\
+		\hline\hline
+		\multicolumn{2}{l}{\footnotesize \textit{t} statistics in parentheses}\\
+		\multicolumn{2}{l}{\footnotesize \sym{*} \(p<0.05\), \sym{**} \(p<0.01\), \sym{***} \(p<0.001\)}\\
+	\end{tabular}
+}
+\end{table}
+
+
+and the exact biases are 
+
+\vspace{10pt}
+
+\begin{table}[hb]
+	\caption{\label{tb:exact_bias_nonrand} The Exact Bias under Nonrandom Assignmen}
+	{
+		\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+		\begin{tabular}{||c|c|c||}
+	\hline
+	Bias for ATE & Bias for ATET & Bias for  ATEU \\
+	\hline
+	$0.4515$ & $0.713$ & -$0.927$ \\
+	\hline
+\end{tabular} }
+\end{table}
+
+\vspace{5pt}
+
+(d). The distribution of treatment effect
+\begin{figure}[hbt]
+{\centering \includegraphics[scale=0.78]{~/Documents/StudyNotes/Econometrics-notes/Figures/ps1_delta_plot}}
+\label{F:delta_all}
+\end{figure}
+\newpage
+The distribution of treatment effect for the treated
+
+\begin{figure}[hbt]
+{\centering \includegraphics[scale=0.78]{~/Documents/StudyNotes/Econometrics-notes/Figures/ps1_delta_treated_plot}}
+\label{F:delta_treated}
+\end{figure}
+
+The distribution of treatment effect for the untreated
+\begin{figure}[hbt]
+{\centering \includegraphics[scale=0.78]{~/Documents/StudyNotes/Econometrics-notes/Figures/ps1_delta_untreated_plot}}
+\label{F:delta_untreated}
+\end{figure}
+
+(d).
+\begin{table}[hb]
+	\caption{\label{tb: nonran_and_rad}The OLS Estimates for Nonrandom Assignment and Random Assignment.}
+	{
+	\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+	\begin{tabular}{l*{2}{c}}
+		\hline\hline
+		&\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}\\
+		&\multicolumn{1}{c}{Y}&\multicolumn{1}{c}{Y\_rand}\\
+		\hline
+		D           &       1.453\sym{***}&                     \\
+		&     (56.09)         &                     \\
+		[1em]
+		D\_rand      &                     &       0.987\sym{***}\\
+		&                     &     (49.10)         \\
+		[1em]
+		\_cons      &       1.394\sym{***}&       2.004\sym{***}\\
+		&     (58.69)         &    (139.59)         \\
+		\hline
+		\(N\)       &       10000         &       10000         \\
+		\hline\hline
+		\multicolumn{3}{l}{\footnotesize \textit{t} statistics in parentheses}\\
+		\multicolumn{3}{l}{\footnotesize \sym{*} \(p<0.05\), \sym{**} \(p<0.01\), \sym{***} \(p<0.001\)}\\
+	\end{tabular}
+}
+\end{table}
+
+
+\begin{table}[hbt]
+	\caption{\label{tb:exact_bias_random} The Exact Bias under Random Assignment}
+	{
+		\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+		\begin{tabular}{||c|c|c||}
+			\hline
+			Bias for ATE & Bias for ATET & Bias for  ATEU \\
+			\hline
+			$-0.0145$ & $0.247$ & $-1.393$ \\
+			\hline
+	\end{tabular} }
+\end{table}
+\newpage
+\textbf{Problem $2$.}\hfill\par 
+
+\vspace{5pt}
+
+(a). Similarly, to compute the ATE, we simply supply $Y_{1} = 3 + 0.25 X + U_{1}$ and $Y_{0} = 2 + 0.5X + U_{0}$ into the definition and get
+\[	\operatorname{ATE} = \mathbb{E}[Y_{1} - Y_{0}] = \mathbb{E}[1 - 0.25X + U_{1} - U_{0}] = 7/8.	\]
+(We used the independence assumption here.)
+\vspace{5pt}
+
+(b). We have
+\[	\operatorname{ATE}(X) = \mathbb{E}[Y_{1} - Y_{0} \mid X] =  \mathbb{E}[1 - 0.25X + U_{1} - U_{0} \mid X] = 1 - 0.25X.	\]
+(We used the independence assumption here.)\par 
+Next, we plot it out .
+
+\begin{figure}[hbt]
+	{\centering \includegraphics[scale=0.78]{~/Documents/StudyNotes/Econometrics-notes/Figures/ps1_cond_ate}}
+	\label{F:cond_ate}
+\end{figure}
+
+(c) and (f). \par 
+The ATE for this simulation draw is $0.8774426$, and the OLS estimate for the \emph{nonrandom} assignment is shown in the first column of Table \ref{tb: p2_ols_nonrand_rand}, and the second column shows the OLS estimate for the \emph{random} assignment 
+
+\begin{table}[hbt]
+	\caption{\label{tb: p2_ols_nonrand_rand} The Exact Bias under Random Assignment}
+{
+	\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+	\begin{tabular}{l*{2}{c}}
+		\hline\hline
+		&\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}\\
+		&\multicolumn{1}{c}{Y}&\multicolumn{1}{c}{Y\_rand}\\
+		\hline
+		D           &       0.838\sym{***}&                     \\
+		&     (37.38)         &                     \\
+		[1em]
+		X           &       0.322\sym{***}&       0.406\sym{***}\\
+		&      (9.33)         &     (11.51)         \\
+		[1em]
+		D\_rand      &                     &       0.861\sym{***}\\
+		&                     &     (42.70)         \\
+		[1em]
+		\_cons      &       2.259\sym{***}&       2.042\sym{***}\\
+		&     (87.22)         &     (89.90)         \\
+		\hline
+		\(N\)       &       10000         &       10000         \\
+		\hline\hline
+		\multicolumn{3}{l}{\footnotesize \textit{t} statistics in parentheses}\\
+		\multicolumn{3}{l}{\footnotesize \sym{*} \(p<0.05\), \sym{**} \(p<0.01\), \sym{***} \(p<0.001\)}\\
+	\end{tabular}
+}
+\end{table}
+\newpage
+
+and the exact bias are 
+\begin{table}[hbt]
+\caption{\label{tb:p2_exact_bias} The Exact Bias under Nonrandom and Random Assignment}
+{
+	\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+	\begin{tabular}{||c|c||}
+		\hline
+		Nonrandom Assignment & Random Assignment \\
+		\hline
+		$-0.040$ & $-0.0158$ \\
+		\hline
+\end{tabular} }
+\end{table}
+
+(e) The distribution of treatment effects looks like 
+\begin{figure}[hbt]
+	{\centering \includegraphics[scale=0.78]{~/Documents/StudyNotes/Econometrics-notes/Figures/ps1_p2_delta_plot}}
+	\label{F:p2_delta}
+\end{figure}
+\end{document}

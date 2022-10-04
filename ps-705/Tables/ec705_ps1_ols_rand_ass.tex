@@ -1,0 +1,22 @@
+{
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\begin{tabular}{l*{2}{c}}
+\hline\hline
+            &\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}\\
+            &\multicolumn{1}{c}{Y}&\multicolumn{1}{c}{Y\_rand}\\
+\hline
+D           &       1.453\sym{***}&                     \\
+            &     (56.09)         &                     \\
+[1em]
+D\_rand      &                     &       0.987\sym{***}\\
+            &                     &     (49.10)         \\
+[1em]
+\_cons      &       1.394\sym{***}&       2.004\sym{***}\\
+            &     (58.69)         &    (139.59)         \\
+\hline
+\(N\)       &       10000         &       10000         \\
+\hline\hline
+\multicolumn{3}{l}{\footnotesize \textit{t} statistics in parentheses}\\
+\multicolumn{3}{l}{\footnotesize \sym{*} \(p<0.05\), \sym{**} \(p<0.01\), \sym{***} \(p<0.001\)}\\
+\end{tabular}
+}

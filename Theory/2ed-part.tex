@@ -1,0 +1,1292 @@
+\documentclass[11pt,a4paper]{amsart}
+\usepackage{amssymb,latexsym}
+\usepackage{graphicx}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{axiom}{Axiom}
+\newtheorem{assumption}{Assumption}
+\newtheorem{proposition}{Proposition}
+\newtheorem*{notation*}{Notation}
+\newtheorem*{remark*}{Remark}
+\usepackage{geometry} % to customize page layout
+\geometry{a4paper,left=2cm,right=2cm,top=1cm,bottom=1cm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\usepackage{ulem} % to have various underlines
+\usepackage{hyperref} % to insert URL 
+\usepackage{graphicx} % to insert illustration
+\usepackage[mathscr]{eucal} % to express a collection of sets
+\usepackage{bm} % to type bold font in equation environment
+\usepackage{color} % to color some text
+\usepackage{framed} % to add a frame 
+\usepackage{bbm} % to type blackboard math characters
+
+
+\begin{document}
+\title{ECON 704: The Second Part}
+\date{\today}
+\maketitle
+		In this second part of the course, we will be mainly covering three topics: \textbf{Causal Inference},  \textbf{Doubly Robust Estimation and Standard Errors} and \textbf{Resampling Methods}. We will also talk something about \textbf{Machine Learning}, but only in a hand-waving fashion. (References are provided for further exploration.)  The level of proof varies throughout: sometimes detailed proofs, sometimes sketches, sometimes “it can be shown”.
+	\vspace{50pt}
+\tableofcontents \newpage
+
+\section{Introduction to Causal Inference}
+\subsection{The Model for Causal Inference}\hfill\par % force a new par. after a subsection
+	 There are two approaches to quantify and evaluate policies. The more traditional way is known as \textbf{the structural approach}. It's an ambitious and powerful approach in the sense that being based on economic models and the optimization behaviors. Also we can do counterfactual analysis. This approach usually rely on strong and restrictive, many times non-testable, functional form assumptions that may undermine the results. Based on a wrong assumption, you could get anything. Of course in practice you could do some robustness check, but it is never exhaustive. So structural approach is strong, but with strong assumptions. \par 
+	An alternative to the structural approach is \textbf{the reduced-form treatment eﬀect approach}. This approach is usual known as \textbf{causal inference} or \textbf{program/policy evaluation}. This our focus in this course. The goal is to try to evaluate the impact of some existing policy \emph{by comparing some the distributions (or some features of it, e.g., expectations, conditional expectations) of a given outcome variable for some individuals that affected by the policy versus the unaffected individuals}. This is a context-speciﬁc and usually address less ambitious policy questions than the structural approach. And we cannot do counterfactual analysis. \par 
+	Within the treatment eﬀect approach, there are also different research designs of evaluation. Among these designs, randomized experiments, as known as \textbf{Randomized Control Trial (RCT)}, is the gold standard for causal inference. With RCT, causal inference can be done quite easily. But most of the time, we cannot do RCT. One of the framework is \textbf{selection on observables}, which is also known as \textbf{unconfoundedness}. This approach requires some (nearly) random assignments conditional on some  control variables. Sometimes selections do not occur on observables, however. Then we can potentially find some instrumental variables and get things done. There are also some other cases, \textbf{Regression discontinuity design}, for example, is closely related with the selection on observables but different. Sometimes we can also use \textbf{Differences in Differences} for panel data. We will just focus on RCT and unconfoundedness.\par 
+	We now formally introduce the approach called \textbf{Rubin's Causal Model}.\footnote{Also known as Rubin-Neyman causal model. The potential outcomes framework was ﬁrst proposed by Jerzy Neyman in his 1923 Master’s thesis and Rubin's (1974)\href{http://www.fsb.muohio.edu/lij14/420_paper_Rubin74.pdf}{\textit{Estimating causal effects of treatments in randomized and nonrandomized studies}} extended it into a general framework.} 
+	
+\subsection{Potential Outcomes and Causality}\hfill\par 
+	We focus on a binary treatment.
+	\begin{definition}
+	 For each individual, define \textit{the treatment indicator function} $D_{i}$ as 
+		\[	D_{i} = 
+		\begin{cases}
+		1 &\text{if unit $i$ is treated;}\\
+		0 &\text{otherwise.}
+		\end{cases}	\]
+	\end{definition}
+	We are interested in outcomes. So for each person $i$, denote $Y_{i}(1)$ as the \textit{potential outcome} for unit $i$ if exposed to treatment, and $Y_{i}(0)$ as the \textit{potential outcome} for unit $i$ if NOT exposed to treatment. We denote the \textit{actual observation} for unit $i$ as $Y_{i}$  with the following definition. 
+	\begin{definition}
+	The	\textit{Observed Outcome} for unit $i$ is defined as
+	\[	Y_{i} = \begin{cases}
+		Y_{i}(1) &\text{if $D_{i} = 1$};\\
+		Y_{i}(0) &\text{if $D_{i} = 0$}.
+	\end{cases}	\]
+	\end{definition}
+	We can rewrite this more succinctly as $Y_{i} = Y_{i}(1)D_{i} + Y_{i}(0)(1-D_{i})$. This is also known as \textit{the SUTVA assumption}, see Assumption (\ref{SUTVA}).\par 
+	What we are actually interested in is as known as the treatment effect. 
+	\begin{definition}
+		The \textit{treatment (or causal) eﬀect } of a policy on the outcome \emph{for individual $i$} is the difference between its two potential outcomes:
+		\[	Y_{i}(1) - Y_{i}(0).	\]
+	\end{definition}
+	But the problem is we only observe one potential outcome $Y_{i}(d)$, $d \in \{0, 1\}$. This is known as \textbf{The Fundamental Problem of Causal Inference}. This is also known as \textbf{missing data problem} in statistics. \par 
+	Fortunately, we as policy makers or economists are more interested in \emph{the diﬀerence of some characteristics of the distribution of $Y_{i}(1)$ and $Y_{i}(0)$.} The causality is thus defined in a population sense.\par 
+	Before defining the parameters of interest, here we introduce an important assumption formally, which is called \textit{Stable Unit Treatment Value Assumption}, or SUTVA. 
+	\begin{assumption}\label{SUTVA}
+		\textbf{Stable Unit Treatment Value Assumption (SUTVA)}\par 
+		The observed outcomes are realized as
+		\[	Y_{i} = Y_{i}(1)D_{i} + Y_{i}(0)(1-D_{i})	\]
+		for each individual $i$.
+	\end{assumption}
+	There are two implications of this assumption.
+	\begin{itemize}
+		\item The potential outcomes for $i$ are unaﬀected by any other treatment unit $j$.
+		\item Eﬀect of treatment is independent of how many individuals receive treatment.
+	\end{itemize}
+	We also introduce the identical distribution assumption.
+	\begin{assumption}
+			\[	\left(Y_{i}(1), Y_{i}(0), D_{i}\right) \stackrel{d}{=}(Y(1), Y(0), D).	\]
+	\end{assumption}
+	Now, we are ready to look at some parameters of interest that capture the treatment effect in an average sense. We will mostly focus on two parameters as defined next.
+	\begin{definition}
+		The \textit{Average treatment eﬀect (ATE)} is defined as 
+		\[	\alpha_{ATE} = E[Y(1) - Y(0)].	\]
+	\end{definition}
+	\begin{definition}
+		The \textit{Average treatment eﬀect on the treated (ATT)} is defined as 
+		\[	\alpha_{ATT} = E[Y(1) - Y(0) | D = 1].	\]
+	\end{definition}
+
+	We will next talk about the identification and inference results based on different treatment assignment mechanisms.
+
+\section{Randomized Controlled Trails }
+	We start with the benchmark of causal inference.
+\subsection{Identification}\hfill\par 
+	\begin{definition}
+		A \textit{randomised experiment} implies that the potential outcomes are independent of the treatment, that is,
+		\[	(Y(1), Y(0)) \text { independent of } D	\]
+		or just $(Y(1), Y(0)) \perp D$.
+	\end{definition}
+	As a consequence, we have 
+	\[	\mathbb{E}[Y(1)] = \mathbb{E}[Y(1) | D = 1] = \mathbb{E}[Y(1) | D = 0 ]	\]
+	and
+	\[ 	\mathbb{E}[Y(0)] = \mathbb{E}[Y(0) | D = 1] = \mathbb{E}[Y(0) | D = 0 ].	\]
+	
+	Let's look at the identification of $\alpha_{ATE}$ and $\alpha_{ATT}$. 
+	
+	\begin{theorem}\label{ident., RCT}
+		\textbf{(Average Treatment Effect Identification)} 
+		
+		Under RCT, we have
+		\[	\alpha_{ATE} =  \mathbb{E}[Y|D=1] - \mathbb{E}[Y|D=0].	\]
+	\end{theorem}
+	\begin{proof}
+		We have  $\mathbb{E}[Y|D=1] = \mathbb{E}[Y(1)D + Y(0)(1-D) | D = 1] = \mathbb{E}[Y(1)|D=1] = \mathbb{E}[Y(1)]$ where the first equality holds by SUTVA and the last one holds by the independence condition of RCT. \par 
+		Similarly, $\mathbb{E}[Y|D=0] = \mathbb{E}[Y(1)D + Y(0)(1-D) | D=0] = \mathbb{E}[Y(0)]$ is also true.
+	\end{proof}
+
+	\begin{theorem}
+			\textbf{(Average Treatment Effect on Treatments Identification)} 
+			
+			Under RCT, we have
+			\[	\alpha_{ATT}  = \mathbb{E}[Y|D=1] - \mathbb{E}[Y|D=0] = \alpha_{ATE}.	\]
+	\end{theorem}
+	\begin{proof}
+		By definition, we have $\alpha_{ATT} = \mathbb{E}[Y(1) | D=1] - \mathbb{E}[Y(0)|D=1]$. The result is evident by the independence condition of Randomized Controlled Trails.
+	\end{proof}
+
+\subsection{Estimation in RCT}\hfill\par 
+	After the identifications of $\alpha_{ATT}$ and $\alpha_{ATE}$, we now try to estimate ATE(we will focus on ATE hereafter in this section since they are the same in RCT).\par 
+	By the analogy principle, we can replace the expectations by the sample average analogs
+	 and define the ATE estimator as below
+	\begin{definition}
+		The \textit{ATE estimator} is defined as 
+		\[
+		\begin{aligned}
+		\widehat{\alpha}_{A T E} &: =\bar{Y}_{1}-\bar{Y}_{0} \\
+		&: =\frac{1}{n_{1}} \sum_{D_{i}=1} Y_{i}-\frac{1}{n_{0}} \sum_{D_{i}=0} Y_{i}.
+		\end{aligned}
+		\]
+		where $n_{1}=\sum_{i=1}^{n} D_{i}, n_{0}=\sum_{i=1}^{n}\left(1-D_{i}\right)$.
+	\end{definition}
+ 	Notice that the $n_{1}$ counts the number of units being treated and $n_{0}$ counts the number of units not being treated.  Moreover, $n_{1}$ and $n_{2}$ now are random, they are determined by the treatment selection process.\par 
+ 	Before proving the consistency and asymptotic normality, let's first lay down some notations which will be useful later. 
+ 	\begin{notation*}\hfill
+ 		\begin{itemize}
+ 			\item For a finite sequence of realizations of i.i.d. random variables $\{Z_{1}, \dots, Z_{n}\}$, denote the sample average $n^{-1}\sum_{i = 1}^{n}Z_{i}$ as  $E_{n}[Z]$. The solid $E$ indicates this is not expectation (we will always denote expectation with the empty looking $\mathbb{E}[\cdot]$ in this note), the subscript $n$ denotes the sample size, and $Z$ denotes the underlying random variable(since they have the same distribution).  So we have $n^{-1} \sum_{i = 1}^{n} D_{i} = E_{n}[D]$.
+ 			\item Denote $\hat{p} = n_{1}/n = n^{-1}\sum_{i=1}^{n}D_{i}$. In words, $\hat{p}$ is the proportion of the units being treated, \emph{given the samples}. 
+ 			\item The above two definitions imply that $\hat{p} = E_{n}[D] \in (0,1)$ and $1-\hat{p} = n_{0}/n = E_{n}[1-D]$, as you may verify.
+ 		\end{itemize}
+ 	\end{notation*}
+ 	Using these notations, we can now rewrite the ATE estimator as 
+ 	\[	\begin{aligned}
+ 		\hat{\alpha}_{ATE} &= \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{n^{-1}\sum_{i = 1}^{n}D_{i}} + \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}(1-D_{i})}{n^{-1}\sum_{i=1}^{n}(1-D_{i})}	\\
+ 		&= \frac{1}{E_{n}(D)} (n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}) + \frac{1}{E_{n}(1-D)} (n^{-1}\sum_{i=1}^{n}Y_{i}(1-D_{i}))\\
+ 		&= E_{n}[\frac{YD}{E_{n}(D)}] + E_{n}[\frac{Y(1-D)}{E_{n}(1-D)}]	\\
+ 		&=  E_{n}[\frac{YD}{\hat{p}}] + E_{n}[\frac{Y(1-D)}{1-\hat{p}}].
+ 	\end{aligned}	\]
+ 	
+ 	We have the following lemma, which identifies ATE in a similar form as the ATE estimator above.
+ 		\begin{lemma}\label{alt. ident. RCT}
+ 			\textbf{(Alternative Identification for Consistency under RCT)}
+ 			
+ 		We have
+ 		\[	\alpha_{ATE} = \frac{\mathbb{E}[YD]}{\mathbb{E}[D]} + \frac{\mathbb{E}[Y(1-D)]}{\mathbb{E}[1-D]}.	\]
+ 	\end{lemma}
+ 	\begin{proof}
+ 		We have 
+ 		\[	\begin{aligned}
+ 	 \frac{\mathbb{E}[YD]}{\mathbb{E}[D]} + \frac{\mathbb{E}[Y(1-D)]}{\mathbb{E}[1-D]} &=  \frac{\mathbb{E}[Y(1)D]}{\mathbb{E}[D]} + \frac{\mathbb{E}[Y(0)(1-D)]}{\mathbb{E}[1-D]} &&\text{(By SUTVA)}	\\
+ 	 &= \frac{\mathbb{E}[Y(1)] \cdot \mathbb{E}[D]}{\mathbb{E}[D]} + \frac{\mathbb{E}[Y(0)] \cdot \mathbb{E}[1-D]}{\mathbb{E}[1-D]} &&\text{(By RCT Assum.)}	\\
+ 	 &= \mathbb{E}[Y(1)] - \mathbb{E}[Y(0)].
+ 		\end{aligned}	\]
+ 	\end{proof}
+ 	Now, we want to show the consistency of $\alpha_{ATE}$.\par 
+ 	The following lemma is used in the proof of consistency, we state it without proof.
+ 	\begin{lemma}\label{finite moments}
+ 		Given that the $k$-th moment is finite, all lesser moments must also be finite.
+ 	\end{lemma}
+ 
+ 	\vspace{30pt}
+ 	
+ 	\begin{theorem}
+ 		\textbf{(Consistency of ATE and ATT estimator)} Under the regularity conditions
+ 		\begin{enumerate}
+ 			\item $(Y(1),Y(0)) \perp D$;
+ 			\item $(Y_{i},D_{i})_{i=1}^{n}$ i.i.d.;
+ 			\item $\mathbb{E}[Y(d)^{2}] < \infty$ for $d = 0,1$, ;
+ 			\item $p := \mathbb{E}[D] \in (0,1)$,
+ 		\end{enumerate}
+ 	We have 
+ 	\[	\hat{\alpha}_{ATE} \stackrel{p}{\longrightarrow} \alpha_{ATE}.	\]
+ 	\end{theorem}
+
+	\begin{proof}
+		By lemma (\ref{alt. ident. RCT}) and the continuous mapping theorem, it satisfies to show that 
+		\begin{enumerate}
+			\item 
+			\[	\frac{1}{n} \sum_{i = 1}^{n} Y_{i}D_{i} \stackrel{p}{\longrightarrow} \mathbb{E}[YD];	\]
+			\item 
+			\[	\frac{1}{n} \sum_{i = 1}^{n} D_{i} \stackrel{p}{\longrightarrow} \mathbb{E}[D];	\]
+			\item 
+			\[	\frac{1}{n} \sum_{i = 1}^{n} Y_{i}(1-D_{i}) \stackrel{p}{\longrightarrow} \mathbb{E}[Y(1-D)];	\]
+			\item 
+			\[		\frac{1}{n} \sum_{i = 1}^{n} (1-D_{i}) \stackrel{p}{\longrightarrow} \mathbb{E}[(1-D)].	\]
+		\end{enumerate}
+	To use Khinchhin's law of large numbers, we want to show that $\{Y_{i}D_{i}\}$, $\{D_{i}\}$, $\{Y_{i}(1-D_{i})\}$ and $\{(1-D_{i})\}$ are i.i.d. and $E[||YD||] < \infty$, $E[||D||] < \infty$, $E[||Y(1-D)||] < \infty$ and $E[||1-D||] < \infty$. The i.i.d. conditions hold trivially by assumption, the follow arguments show the finiteness of moments conditions:
+	\begin{enumerate}
+		\item We have $\mathbb{E}[||YD||] = \mathbb{E}[||[Y(1)D + Y(0)(1-D)]D||] = \mathbb{E}[||	Y(1)D^{2} +Y(0)(1-D)D	||] = \mathbb{E}[||	Y(1)D	||]$, where the last equality holds since $D^{2} = D$ and $D(1-D) = 0$. Then, $\mathbb{E}[||Y(1)D||] \leq \mathbb{E}[||Y(1)||]$ and the result follows by the finiteness of $\mathbb{E}[|| Y(1)^{2} ||]$ and lemma (\ref{finite moments}).
+		\item We have $\mathbb{E}[||D||] \leq 1$.
+		\item We have $\mathbb{E}[||Y(1-D)||] = \mathbb{E}[||Y(1)D(1-D) + Y(0)(1-D)^{2}||] = \mathbb{E}[||Y(0)(1-D)^{2}||] = \mathbb{E}[||Y(0) - Y(0)D||]\leq 2\mathbb{E}[||Y(0)||] < \infty$ by the finiteness of $\mathbb{E}[|| Y(0)^{2} ||]$ and lemma (\ref{finite moments}).
+		\item  We have $\mathbb{E}[||(1-D)||] \leq 1$.
+	\end{enumerate}
+	\end{proof}
+	Next, we will derive the asymptotic normality property of our estimators.
+	\newpage
+	\begin{theorem}
+			\textbf{(Asymptotic Normality of ATE and ATT estimator)}. Under the same regularity conditions as before, we have 
+			\[	\sqrt{n}(\hat{\alpha}_{ATE} - \hat{\alpha}_{ATT}) \stackrel{d}{\longrightarrow} N(0, \Omega) 	\] 
+			where 
+			\[\begin{aligned}
+			\Omega &=\mathbb{E}\left[\left(\frac{D}{p}(Y-\mathbb{E}[Y(1)])-\frac{1-D}{1-p}(Y-\mathbb{E}[Y(0)])\right)^{2}\right] \\
+			&=\mathbb{E}\left[\frac{(Y(1)-\mathbb{E}[Y(1)])^{2}}{p}+\frac{(Y(0)-\mathbb{E}[Y(0)])^{2}}{1-p}\right] \\
+			&=\frac{\operatorname{Var}(Y(1))}{p}+\frac{\operatorname{Var}(Y(0))}{1-p}
+			\end{aligned}	\]
+			and $p = \mathbb{E}[D] = \mathbb{P}[D=1] \in (0,1)$.
+	\end{theorem}
+	
+	\begin{proof}
+		For this proof, we first rewrite our estimator in a matrix form, then derive the asymptotic normality of the transformed problem through a process called linearization, and finally use Delta Method to get our original estimator back. Also, we proceed by proving first 
+		\[	\Omega = \frac{\operatorname{Var}(Y(1))}{p} + \frac{\operatorname{Var}(Y(0))}{p},	\]
+		then show the first two equalities. \par
+		Define 
+		\[	\hat{\theta}  = \begin{pmatrix}
+		\hat{\alpha}^{(1)} \\
+		\hat{\alpha}^{(2)}
+		\end{pmatrix} = \begin{pmatrix}
+		\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{\hat{p}}\\
+		\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}(1-D_{i})}{1-\hat{p}}
+		\end{pmatrix} \qquad \text{and} \qquad
+		\theta = \begin{pmatrix}
+		\alpha^{(1)} \\
+		\alpha^{(0)}
+		\end{pmatrix}
+		=\begin{pmatrix}
+		\mathbb{E}[Y(1)] \\
+		\mathbb{E}[Y(0)]
+		\end{pmatrix} .
+			\]
+			
+		If we can show that 
+		\begin{equation}\label{matrix form, asym. RCT}
+		\sqrt{n}(\hat{\theta} - \theta) \stackrel{d}{\longrightarrow} N\begin{pmatrix}
+		\begin{pmatrix}
+		0 \\
+		0
+		\end{pmatrix}
+		, \begin{pmatrix}
+		\frac{V(Y(1))}{p} & 0 \\
+		0 & \frac{V(Y(0))}{1-p} 
+		\end{pmatrix}
+		\end{pmatrix}
+		\end{equation}
+		
+		Then by the Delta Method, define $g(a,b) = a-b$ and we have 
+		\[	\begin{aligned}
+		\sqrt{n}(\hat{\alpha}_{ATE} - \alpha_{ATE}) &= \sqrt{n}[g(\hat{\alpha}^{(1)}, \hat{\alpha}^{(0)}) - g(\alpha^{(1)},\alpha^{(0)})]	\\
+		&\stackrel{d}{\longrightarrow} N\begin{pmatrix}
+		\begin{pmatrix}
+		0 \\
+		0
+		\end{pmatrix}
+		, \begin{pmatrix}
+		1 & -1
+		\end{pmatrix} \begin{pmatrix}
+		\frac{V(Y(1))}{p} & 0 \\
+		0 & \frac{V(Y(0))}{1-p} 
+		\end{pmatrix}
+		\begin{pmatrix}
+		1 \\
+		-1
+		\end{pmatrix}
+		\end{pmatrix}
+		\end{aligned}\]
+		And the sandwich form matrix is actually $\frac{Var(Y(1))}{p} - \frac{Var(Y(0))}{1-p}$ and we are done. So it suffices to show that equation $(\ref{matrix form, asym. RCT})$ holds.\par 
+		To show this equation, 	we want to rewrite $\sqrt{n}(\hat{\theta} - \theta)$ into an asymptotically linear form 
+		\[	\sqrt{n}(\hat{\theta} - \theta) = 
+		\frac{1}{\sqrt{n}}\sum_{i = 1}^{n}\begin{pmatrix}
+		\eta_{i}^{(1)}\\
+		\eta_{i}^{(0)}
+		\end{pmatrix} + o_{p}(1)	\]
+		and then we can ignore $o_{p}(1)$ statistically(by Slutsky Theorem) to get it rightly centered and hence we could use the central limit theorem. \par 
+		We focus on the first component of $(\hat{\theta} - \theta)$, which is $\hat{\alpha}^{(1)} - \mathbb{E}[1]$ by definition, and the other component is similar. Notice that $\hat{\alpha}^{(1)}$ is a simple average divided by another sample average, which is not in an linear form. We want to change the (cumbersome) denominator and use second order Taylor polynomial to approximate it. That is, the second order Taylor expansion (Mean Value Expansion) around $p$ (since $\hat{p}$ converges in probability to $p$, $\hat{p}$ should not be vary far to $p$ and our approximation is justified.):
+		\[	\begin{aligned}
+			f(\hat{p}) 
+			&= \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{\hat{p}} \\
+			&= \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p} - \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p^{2}}(\hat{p} - p) + \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{\tilde{p}^{3}} (\hat{p} - p)^{2}	
+		\end{aligned}	\] 
+		where $\tilde{p}$ lies between $\hat{p}$ and $p$.\par 
+		Then we can rewrite the first component of $\hat{\theta} - \theta$ to be
+		\begin{equation}\label{terms 1,2 and 3, asym. RCT}
+		\hat{\alpha}^{(1)} - \alpha^{(1)} = \underbrace{\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p}}_{(1)} - \underbrace{\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p^{2}}(\hat{p} - p)}_{(2)} + \underbrace{\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{\tilde{p}^{3}} (\hat{p} - p)^{2}}_{(3)} - \mathbb{E}[Y(1)].
+		\end{equation}
+	 The first term is already good. We need to take care of the second $(2)$ and the third $(3)$ term. Before that, we need to introduce two results.
+	 \begin{itemize}
+	 			\item We have $\hat{p} - p = O_{p}(\frac{1}{\sqrt{n}})$.
+	 	\begin{proof}
+	 		This is true since we have $\sqrt{n}(\hat{p} - p) = \sqrt{n}(\frac{1}{n}\sum_{i = 1}^{n}D_{i}-\mathbb{E}[D]) =  \sqrt{n}(\frac{1}{n}(\sum_{i = 1}^{n}D_{i}-\mathbb{E}[D])) $ converges in distribution to a normal distribution with mean zero, we know that $\sqrt{n}(\hat{p} - p) = O_{p}(1)$ and hence $\sqrt{n}(\hat{p} - p) = O_{p}(1)$.
+	 	\end{proof}
+	 	\item We have $(\hat{p} - p)^{2} = O_{p}(\frac{1}{n})$.
+	 	\begin{proof}
+	 		Since $\hat{p} - p = O_{p}(\frac{1}{\sqrt{n}})$, the result follows evidently by the operations of $O_{p}(1)$ notation.
+	 	\end{proof}
+	 \end{itemize}
+ 	
+	 Now, in terms of the second term $(2)$, we have 
+	 \begin{equation}
+	 	\begin{aligned}
+		 		\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p^{2}}(\hat{p} - p) &= 	\frac{\mathbb{E}[YD]+o_{p}(1)}{p^{2}}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) \\
+		 		&= \frac{\mathbb{E}[YD]}{p^{2}}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) +  \frac{o_{p}(1)}{p^{2}}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) \\
+		 		&= \frac{\mathbb{E}[Y(1)]}{p}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) +  \frac{o_{p}(1)}{p^{2}}(\hat{p} - p)\\
+		 		&=  \frac{\mathbb{E}[Y(1)]}{p}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) + 
+		 		\frac{1}{p^{2}} \cdot o_{p}(\frac{1}{\sqrt{n}}).
+	 	\end{aligned}
+	 \end{equation}
+	 
+	 The first equation holds by $n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}$ converging in probability to $\mathbb{E}[YD]$(which has been shown in the consistency part) and the definition of $\hat{p}$. And the last equation holds since $o_{p}(1)\cdot(\hat{p} - p) = o_{p}(1)\cdot O_{p}(\frac{1}{\sqrt{n}}) = o_{p}(\frac{1}{\sqrt{n}})$.\par 
+	 For the third term $(3)$, we have 
+	 \[	\begin{aligned}
+			\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{\tilde{p}^{3}} (\hat{p} - p)^{2} &= \frac{\mathbb{E}[YD]+o_{p}(1)}{\tilde{p}^{3}} (\hat{p} - p)^{2}\\
+			&= \mathbb{E}[YD]\cdot\frac{(\hat{p} - p)^{2}}{\tilde{p}^{3}}  + o_{p}(1) \cdot \frac{(\hat{p} - p)^{2}}{\tilde{p}^{3}} 
+	 \end{aligned}	\]
+	 Notice that we have $\tilde{p}$ lies between $\hat{p}$ and $p$, so $\tilde{p}$ must converge in probability to $p$. That is, $\tilde{p} = p + o_{p}(1)$. It follows that $\frac{1}{\tilde{p}^{3}} = \frac{1}{p^{3} + o_{p}(1)} = O_{p}(1)$ by the operation properties of $O_{p}$ notation(see the sidenote below).
+	 \begin{framed}
+	 	\textbf{(sidenote)} 
+	 	\begin{lemma}
+	 	\[	\frac{1}{\tilde{p}^{3}} = \frac{1}{p^{3} + o_{p}(1)} = O_{p}(1).	\]
+	 	\end{lemma}
+ 		\begin{proof}
+ 			We have 
+ 			\[	\begin{aligned}
+ 			\frac{1}{\tilde{p}^{3}} &= \frac{1}{p^{3} + o_{p}(1)}	\\
+ 			&= \frac{1}{p^{3}(1 + o_{p}(1))}	\\
+ 			&= \frac{1}{p^{3}} \cdot O_{p}(1)	\\
+ 			&= O_{p}(1).
+ 			\end{aligned}
+ 				\]
+ 				The first equality holds since after the expansion of $\tilde{p}^{3} = (p + o_{p}(1))^{3}$, we get a term $p^{3}$ and other terms being the form $o_{p}(1)$ times some constant, therefore they are $o_{p}(1)$ in sum. We can proceed by $ \frac{1}{p^{3} + o_{p}(1)} \leq  \frac{1}{1 + o_{p}(1)} = O_{p}(1)$ as well.
+ 		\end{proof}
+	 \end{framed}
+	  Then, we have
+	 \[		\frac{(\hat{p} - p)^{2}}{\tilde{p}^{3}} = O_{p}(\frac{1}{n})\cdot O_{p}(1) = O_{p}(\frac{1}{n}) = o_{p}(\frac{1}{\sqrt{n}})	\]
+	 The last equality holds since we have $\frac{1}{n}/\frac{1}{\sqrt{n}} = \frac{1}{\sqrt{n}} \rightarrow 0$ and by property (2) of the Algebraic operations of the $O_{p}$ notations in the mathematical appendix.\par 
+	 At this point, we can rewrite equation (\ref{terms 1,2 and 3, asym. RCT}) as 
+	 \[	\begin{aligned}
+		\hat{\alpha}^{(1)} - \alpha^{(1)} &=  \underbrace{\frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p}}_{(1)} - \underbrace{\frac{\mathbb{E}[Y(1)]}{p}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p))+ o_{p}(\frac{1}{\sqrt{n}})}_{(2)} + \underbrace{o_{p}(\frac{1}{\sqrt{n}})}_{(3)}	 - \mathbb{E}[Y(1)]	\\
+		&= \frac{n^{-1}\sum_{i = 1}^{n}Y_{i}D_{i}}{p} - \frac{\mathbb{E}[Y(1)]}{p}(\frac{1}{n}\sum_{i = 1}^{n} (D_{i} - p)) - \mathbb{E}[Y(1)] + o_{p}(\frac{1}{\sqrt{n}}) \\
+		&= \frac{1}{n}\sum_{i = 1}^{n} \frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)]) + o_{p}(\frac{1}{\sqrt{n}}).
+	 \end{aligned}	\]
+	 The last equality holds by some algebra. Then we can multiply the equation by $\sqrt{n}$, which becomes
+	 \[	\sqrt{n}(\hat{\alpha}^{(1)} - \alpha^{(1)}) = \frac{1}{\sqrt{n}}\sum_{i = 1}^{n} \frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)]) + o_{p}(1),	\] 
+	 and we define $\frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)]) $ to be $\eta_{i}^{1}$. \par 
+	 Similarly, it can be shown that 
+	  \[	\sqrt{n}(\hat{\alpha}^{(0)} - \alpha^{(0)}) = \frac{1}{\sqrt{n}}\sum_{i = 1}^{n} \frac{1-D_{i}}{1-p}(Y_{i}(0) - \mathbb{E}[Y(0)]) + o_{p}(1).	\] 
+	 and we define $ \frac{1-D_{i}}{1-p}(Y_{i}(0) - \mathbb{E}[Y(0)])$ to be $\eta_{i}^{0}$. \par 
+	 Therefore, we have 
+	 \[	\sqrt{n}(\hat{\theta} - \theta) = \frac{1}{\sqrt{n}} \sum_{i=1}^{n} \begin{pmatrix}
+	 \eta_{i}^{1} \\
+	 \eta_{i}^{0}
+	 \end{pmatrix} + o_{p}(1)=
+	 \frac{1}{\sqrt{n}} \sum_{i=1}^{n}
+	 \begin{pmatrix}
+	  \frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)]) \\
+	  \frac{1-D_{i}}{1-p}(Y_{i}(0) - \mathbb{E}[Y(0)])
+	 \end{pmatrix} + o_{p}(1).	\]
+	 By central limit theorem, it converges in distribution to a normal distribution with mean $0$ and the variance (-covariance matrix) 
+	 \[ \begin{pmatrix}
+	 \operatorname{Var} (\eta_{i}^{(1)}) &  \operatorname{Cov}(\eta_{i}^{(1)},\eta_{i}^{(0)})\\
+	 \operatorname{Cov}(\eta_{i}^{(1)},\eta_{i}^{(0)}) &  \operatorname{Var} (\eta_{i}^{(0)}) 
+	 \end{pmatrix}.	\]
+	 Notice that we have 
+	 \[	\begin{aligned}
+		  \operatorname{Var} (\eta_{i}^{(1)}) &= V(\frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)])) &&\text{(By definition)} \\
+		 &= V(\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)])) &&\text{(Identical distribution)} \\
+		 &= \mathbb{E}[V(\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)])|D)] + V(\mathbb{E}[\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)])|D]) &&\text{(Law of Total Variance)}\\
+		 &=  \mathbb{E}[V(\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)])|D)] &&\text{(The last term is zero)}\\
+		 &= \frac{1}{p^{2}} \cdot \mathbb{E}[D^{2}\cdot V(Y(1)-\mathbb{E}[Y(1)]|D)] &&\text{(Pull out $D$ and $p$)}\\
+		 &= \frac{1}{p^{2}} \cdot \mathbb{E}[D\cdot V(Y(1)|D)] &&\text{($D^{2} = D$)} \\
+		 &=  \frac{1}{p^{2}} \cdot \mathbb{E}[D]\cdot V(Y(1)) &&\text{(Variance is a number; RCT)}\\
+		 &= \frac{V(Y(1))}{p} .
+	 \end{aligned}	\]
+	 Similarly, we have 
+	 \[	Var(\eta_{i}^{(0)}) = \frac{V(Y(0))}{1-p}. 	\]
+	 We are left to show $Cov(\eta_{i}^{(0)},\eta_{i}^{(1)}) = 0$. 
+	 \[
+	 \begin{aligned}
+	 	Cov(\eta_{i}^{(0)},\eta_{i}^{(1)})  &= Cov(\frac{D_{i}}{p}(Y_{i}(1) - \mathbb{E}[Y(1)]),
+	 	\frac{1-D_{i}}{1-p}(Y_{i}(0) - \mathbb{E}[Y(0)]))\\
+	 	&= Cov(\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)]),
+	 	\frac{1-D}{1-p}(Y(0) - \mathbb{E}[Y(0)])) &&\text{(Identical distribution)}	\\
+	 	&= \mathbb{E}[Cov(\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)]),
+	 	\frac{1-D}{1-p}(Y(0) - \mathbb{E}[Y(0)])|D)] \\
+	 	&+ Cov(\mathbb{E}[\frac{D}{p}(Y(1) - \mathbb{E}[Y(1)])|D],
+	 	\mathbb{E}[\frac{1-D}{1-p}(Y(0) - \mathbb{E}[Y(0)])|D]) &&\text{(Law of Total Covariance)}\\
+	 	&= 0. &&\text{(Both terms are zero)}
+	 \end{aligned}
+	 \]
+	 
+	 Now, we have shown that equation (\ref{matrix form, asym. RCT}) is true, as desired. Then by Delta Method, 
+	 	\[\begin{aligned}
+	 \Omega =\frac{\operatorname{Var}(Y(1))}{p}+\frac{\operatorname{Var}(Y(0))}{1-p}.
+	 \end{aligned}	\]
+	 \par 
+	 Finally, we are left to show the first two equalities in the theorem:
+	\[\begin{aligned}
+	 \Omega &= \mathbb{E}\left[\left(\frac{D}{p}(Y-\mathbb{E}[Y(1)])-\frac{1-D}{1-p}(Y-\mathbb{E}[Y(0)])\right)^{2}\right] \\
+	 &=\mathbb{E}\left[\frac{(Y(1)-\mathbb{E}[Y(1)])^{2}}{p}+\frac{(Y(0)-\mathbb{E}[Y(0)])^{2}}{1-p}\right].
+	 \end{aligned}	\]
+	 
+	 These are true since
+	 \[	\begin{aligned}
+	 	&\mathbb{E}\left[\left(\frac{D}{p}(Y-\mathbb{E}[Y(1)])-\frac{1-D}{1-p}(Y-\mathbb{E}[Y(0)])\right)^{2}\right] \\
+	 	&=\mathbb{E}\left[\left(\frac{D}{p}(Y-\mathbb{E}[Y(1)])\right)^{2}\right] +	\mathbb{E}\left[\left(\frac{1-D}{1-p}(Y-\mathbb{E}[Y(0)])\right)^{2}\right] &&\text{(since $D(1-D)=0$)} \\
+	 	&=\mathbb{E}\left[\left(\frac{D}{p}(Y(1)-\mathbb{E}[Y(1)])\right)^{2}\right] +	\mathbb{E}\left[\left(\frac{1-D}{1-p}(Y(0)-\mathbb{E}[Y(0)])\right)^{2}\right] &&\text{(since $DY=DY(1)$)}\\
+	 	&= \frac{1}{p} \cdot \mathbb{E}\left[\left(Y(1)-\mathbb{E}[Y(1)]\right)^{2}\right] +	\frac{1}{1-p} \cdot \mathbb{E}\left[\left(Y(0)-\mathbb{E}[Y(0))\right)^{2}\right] &&\text{(since $\mathbb{E}[D]=p$)}\\
+	 	&= \frac{\operatorname{Var}(Y(1))}{p} + \frac{\operatorname{Var}(Y(0))}{1-p}.
+	 	 \end{aligned}	\]
+	\end{proof}
+	This is how we show asymptotic normality for nonlinear estimators in general. But we still do not know the true variance and therefore need an estimator.\par 
+	 It can be shown that
+	\[	\widehat{\Omega}=\frac{1}{n} \sum_{i=1}^{n}\left(\frac{D_{i}\left(Y_{i}-\bar{Y}_{1}\right)}{\widehat{p}}+\frac{\left(1-D_{i}\right)\left(Y_{i}-\bar{Y}_{0}\right)}{1-\widehat{p}}\right)^{2}	\]
+	is consistent for the covariance $\Omega  = \frac{\operatorname{Var}(Y(1))}{p} + \frac{\operatorname{Var}(Y(0))}{1-p}$. That is, $\hat{\Omega} \stackrel{p}{\longrightarrow} \Omega$.\par
+	Based on the existing results in hands, we have 
+	\[	\sqrt{n}\cdot \widehat{\Omega}^{-1 / 2}\left(\widehat{\alpha}_{ATE}-\alpha_{A T E}\right) \stackrel{d}{\longrightarrow}  \Omega^{-1/2}N(0,\Omega) = N(0,1).	\]
+	\emph{We can now do Z-test and construct conﬁdence intervals.}\par 
+	This is great, but in practice, people do not do this because linear regression is good enough for RCT as we are going to show. 
+	
+\subsection{Estimation with Linear Regression}\hfill\par 
+	Notice that we have 
+	\[	\begin{aligned}
+	\mathbb{E}\left[Y_{i} \mid D_{i}\right] &=D_{i} \mathbb{E}\left[Y_{i}(1) \mid D_{i}\right]+\left(1-D_{i}\right) \mathbb{E}\left[Y_{i}(0) \mid D_{i}\right] \\
+	&=\underbrace{\mathbb{E}\left[Y_{i}(0)\right]}_{\boldsymbol{\beta}_{0}}+\underbrace{\left(\mathbb{E}\left[Y_{i}(1)-Y_{i}(0)\right]\right)}_{\boldsymbol{\beta}_{1}} \cdot D_{i} \\
+	&=\boldsymbol{\beta}_{0}+\boldsymbol{\beta}_{1} D_{i} .
+	\end{aligned}	\]
+	
+	Therefore, $\boldsymbol{\beta}_{1}$ is identifying ATE and ATT. Thus under RCT, we can just run a simple regression of $Y$ on $(1,D)'$ to estimate ATT and ATE. In practice, we might have some extra covariates to run a regression such as
+	\[	Y_{i}=\beta_{0}+\beta_{1} D_{i}+W_{i}^{\prime} \gamma+\varepsilon_{i}.	\]
+	$\boldsymbol{\beta}_{1}$ here is still identifying ATE and ATT. And it can be shown that
+	\[	\left(\widehat{\beta}_{0}, \widehat{\beta}_{1}, \widehat{\gamma}^{\prime}\right)^{\prime}=\operatorname{argmin}_{\left(\beta_{0}, \beta_{1}, \gamma^{\prime}\right)} \sum_{i=1}^{n}\left(Y_{i}-\beta_{0}-\beta_{1} D_{i}-W_{i}^{\prime} \gamma\right)^{2}.	\]
+	Although $(1,D)$ is enough for getting estimations, sometimes the covariance can be smaller by adding more covariates. See Ch 7.5 of the textbook by Imbens and Rubin (2015).\footnote{Imbens, G., \& Rubin, D. (2015). \textit{Causal Inference for Statistics, Social, and Biomedical Sciences: An Introduction}. Cambridge University Press.} 
+
+\section{Causal Inference under Unconfoundedness}
+	In Econ, people do not have such perfect randomisation as in RCT, observational studies are usually more feasible. In that case, people's optimization behavior will mess things up. We need to directly adjust for the observed variables (this section) and, when necessary, use indirect methods to adjust for unobserved variables. \par 
+	This section deals with a less demanding condition, called \textbf{Conditional Independence Condition, (CIA)}, which is stated as 
+	\begin{assumption}
+		\textbf{Conditional Independence Assumption(CIA)}\par 
+		Let $X$ be a vector of predetermined covariates. Assume that 
+		\[	(Y(1),Y(0)) \perp D \mid  X.	\]
+	\end{assumption}
+	This is also called \textit{the unconfoundedness} and \textit{Selection on observables}. It means that the potential outcomes are independent of the treatment, conditional on a vector of predetermined covariates. Importantly, that does not imply $X \perp D$, and in fact they may very well be dependent. (consider the case of distributing free lunches to schools, poorer schools get more lunch). \par
+	We will also need the \textit{common support assumption}:
+	\begin{assumption}
+		\textbf{Common Support Assumption} \par 
+		There exists an $\epsilon > 0$ such that $\epsilon < \mathbb{P}[D=1 \mid X=x] < 1-\epsilon$ for all $x \in support(X)$. 
+	\end{assumption} 
+	It's like the condition that treatment probability is between zero and one open interval, which we had before. For identification, we only need $0 < \mathbb{P}[D=1|X=x]  < 1$, and the $\epsilon$ thing is for inferences. For identification, we need to have people being treated and not treated (i.e., $0 < P(D|X = x) < 1$) for each value of $x$. 
+	
+\subsection{Identification} \hfill\par 
+	We will need the following useful proposition about conditional independence. 
+	\begin{lemma}\label{observables, lemma for iden}
+		For any three random variables $X,Y$ and $Z$. If $X \perp Y | Z$, then we have 
+		\[	\mathbb{E}[X \mid Y,Z] = \mathbb{E}[X \mid Z]	\].
+	\end{lemma}
+	In words, since $X$ and $Y$ are independent given $Z$, then $Y$ does not carry any extra information in the conditional expectation $\mathbb{E}[X|Y,Z]$.
+	\begin{proof}
+		Suppose $X$ and $Y$ are real valued. 
+		For conditional independence, by definition, $X$ is independent of $Y$ given $Z$ means that for any $A, B, C \subset \mathbb{R}$, we have 
+		\[	\mathbb{P}[x \in A, y \in B \mid z \in Z] = \mathbb{P}[x \in A \mid z \in Z] \cdot \mathbb{P}[y \in B \mid z \in Z].	\]
+		
+		In addition, if $X, Y$ and $Z$ are continuously distributed, then
+		\[	f_{XY \mid Z} = f_{X \mid Z} \cdot f_{Y \mid Z}.	\]
+		
+		We want to show, for any $y,z$, we have 
+		\[	\mathbb{E}[X \mid Y=y, Z=z] = 	\mathbb{E}[X \mid Z=z].	\]
+		Given $Y=y$ and $Z=z$,
+		\[	\begin{aligned}
+				\mathbb{E}[X \mid Y=y, Z=z] &= \int_{x} x \cdot f_{X|Y,Z}(x|y,z) dx \\
+				&=  \int_{x} x \cdot \frac{f_{X,Y,Z}(x,y,z)}{f_{Y,Z}(y,z)} dx \\
+				&= \int_{x} x \cdot \frac{f_{X,Y|Z}(x,y|z)\cdot f_{Z}(z)}{f_{Y|Z}(y|z)\cdot f_{Z}(z)} dx \\
+				&= \int_{x} x \cdot \frac{f_{X,Y|Z}(x,y|z)}{f_{Y|Z}(y|z)} dx \\
+				&=  \int_{x} x \cdot \frac{f_{X|Z}(x|z)\cdot f_{Y|Z}(y|z)}{f_{Y|Z}(y|z)} dx &&\text{(By Conditional Independence Asum.)} \\
+				&= \int_{x} x \cdot f_{X|Z}(x|z) dx	\\
+				&= \mathbb{E}[X \mid Z=z].
+		\end{aligned}	\]
+	\end{proof}
+
+	\begin{remark*}
+		$\mathbb{E}[X|Y,Z] , \mathbb{E}[X|Z]$ are random variables(functions), so to say that they are equal is saying for any $Y=y, Z=z$, which is an event, we have the same value of these two functions. We also have $\mathbb{E}[X|Y, Z=z] =  \mathbb{E}[X|Z=z]$ holds for every $z$ as a consequence. Although the left side looks like a r.v. depending on $Y$, but it is degenerated in this special case.
+	\end{remark*}
+	
+	\begin{corollary}
+		Under the Conditional Independence Assumption(CIA), we have 
+		\[	\mathbb{E}[Y(1) \mid D,X] = \mathbb{E}[Y(1) \mid X]	\]
+		and
+		\[	\mathbb{E}[Y(0) \mid D,X] = \mathbb{E}[Y(0) \mid X].	\]
+	\end{corollary}
+	\begin{proof}
+		The result follows evidently by CIA and the previous lemma (we proved the continuous case, and it also holds for the discrete cases).
+	\end{proof}
+	Notice that this result also implies 
+		\[	\mathbb{E}[Y(1) \mid D=d,X] = \mathbb{E}[Y(1) \mid X]	\]
+	and
+	\[	\mathbb{E}[Y(0) \mid D=d,X] = \mathbb{E}[Y(0) \mid X]	\]
+	for $d=0,1$.\par 
+	Then we have the identification result for ATE:
+	\begin{theorem}
+		\textbf{(Identiﬁcation of ATE)}. Under the CIA and common support conditions, we have 
+		\[	 \begin{aligned}
+				\alpha_{A T E} &= \mathbb{E}[\underbrace{\mathbb{E}[Y|X,D=1]}_{:= \mu_{1}(X)} - \underbrace{\mathbb{E}[Y|X,D=0]}_{:= \mu_{0}(X)} ] \\
+				&= \int_{x} (\mu_{1}(x)-\mu_{0}(x)) \cdot f_{X}(x)dx.
+		\end{aligned}	\]
+	\end{theorem}
+	
+	\begin{remark*}
+		Inside the expectation, we have $\mathbb{E}[Y|X,D=1] - \mathbb{E}[Y|X,D=0]$, which is just a number depending on the realization of $X$ (A random variable, which is a transformation of only $X$), so by definition, we have the second equality holds.
+	\end{remark*}
+	
+	\begin{proof}
+		\[	\begin{aligned}
+		\mathbb{E}[\mathbb{E}[Y|X,D=1] - \mathbb{E}[Y|X,D=0]] &= \mathbb{E}[\mathbb{E}[Y(1)|X,D=1] - \mathbb{E}[Y(0)|X,D=0]] &&\text{(SUTVA)}	\\
+		&= \mathbb{E}[\mathbb{E}[Y(1)|X] - \mathbb{E}[Y(0)|X]] &&\text{(CIA \& Lemma (\ref{observables, lemma for iden})))}	\\
+		&= \mathbb{E}[Y(1)-Y(0)] &&\text{(LIE)}.
+		\end{aligned}	\]
+	\end{proof}
+	
+	Now, the identification result for ATT:
+	\begin{theorem}
+			\textbf{(Identiﬁcation of ATT)}. Under the CIA and common support conditions, we have 
+			\[	\alpha_{A T T} = \mathbb{E}[Y-\mathbb{E}[Y|X, D=0]|D=1].	\]
+	\end{theorem}
+	\begin{proof}
+		\[	\begin{aligned}
+			 \mathbb{E}[Y-\mathbb{E}[Y|X, D=0]|D=1] 	&=  \mathbb{E}[Y|D=1]- \mathbb{E}[\mathbb{E}[Y|X, D=0]|D=1]] \\
+			&=  \mathbb{E}[Y(1)|D=1]- \mathbb{E}[\mathbb{E}[Y(0)|X, D=0]|D=1]] &&\text{(SUTVA)}	\\
+			&= \mathbb{E}[Y(1)|D=1]- \mathbb{E}[\mathbb{E}[Y(0)|X]|D=1]] &&\text{(lemma (\ref{observables, lemma for iden}))}	\\
+			&=  \mathbb{E}[Y(1)|D=1]-\mathbb{E}[\mathbb{E}[Y(0)|X,D=1]|D=1]] &&\text{(lemma (\ref{observables, lemma for iden}))}\\
+			&= \mathbb{E}[Y(1)|D=1] - \mathbb{E}[Y(0)|D=1] &&\text{(LIE)} \\
+			&= \alpha_{ATT}.
+		\end{aligned}	\]
+	\end{proof}
+	\vspace{5pt}
+	\emph{Now, we shall discuss different estimators for them.}
+	
+\subsection{Estimation by Subclassiﬁcation}\hfill\par 
+	The first estimator we want to talk about comes from \textbf{subclassification}. Assume that $X$ takes on only a finite of values $\{x^{1}, x^{2}, \dots, x^{K}\}$. Then we would just estimate $\mathbb{E}[Y|X=x^{k}, D=d]$ for each $x^{k}$ and average them for ATE. This is very analogous to the RCT case we have done. But this estimator is not very good is the following sense:
+	\begin{enumerate}
+		\item If $X$ is continuous, then this estimator does not work.
+		\item \textbf{(“The Curse of Dimensionality”)} Suppose $X$ is $k-$dimensional, and each component only takes either $0$ or $1$, even in this case, the number of cells will be $2^{k}$. And in each cell, we need to have both treated and control group, so with many covariates, subclassiﬁcation becomes unfeasible.
+	\end{enumerate}
+	We will not spend a lot of time on this. 
+	
+\subsection{Estimation by Matching}\hfill\par 
+	This idea is simple but a bit complicated in math. We can deﬁne the matching ATE estimator as 
+	\[	\begin{aligned}
+	\widehat{\alpha}_{M} &=\frac{1}{n} \sum_{i=1}^{n}\left(\widehat{Y}_{i}(1)-\widehat{Y}_{i}(0)\right) \\
+	&=\frac{1}{n} \sum_{i=1}^{n}\left(2 D_{i}-1\right)\left(1+\frac{K_{M}(i)}{M}\right) Y_{i}
+	\end{aligned}	\]
+	where
+	\[	K_{M}(i)=\sum_{l=1}^{n} \mathbbm{1}\left\{i \in \mathcal{J}_{M}(l)\right\}	\]
+	counts the number of times unit $i$ is used as a match given $M$. \par 
+	This estimator is not consistent, but it is not bad under certain conditions.\par 
+	We discuss the asymptotic normality property here in a loose manner.  Notice that we do not have independent here as $K_{M}(i)$ depends on $X_{1}, X_{2}, \dots, X_{n}$.
+	\begin{theorem}
+	We have 
+	\[		\sqrt{n}(\hat{\alpha} - \alpha + E_{M}) \stackrel{d}{\longrightarrow} N(0,G_{\alpha}^{2} + G_{E}^{2})	\]
+	for some variance $G_{\alpha}^{2} + G_{E}^{2}$.
+	\end{theorem}
+	\begin{proof}
+		\textbf{(sketch).} We go term by term. \par 
+		First, we have
+		\[	\hat{\alpha} - \alpha = \frac{1}{n}\sum_{i=1}^{n}\left(\mu_{1}(X_{i})-\mu_{0}(X_{i})\right) - \mathbb{E}[(Y(1)-Y(0))].	\]
+		Note that the summands are i.i.d. over $i = 1,2,3, \dots$ here since $\left(\mu_{1}(X_{i})-\mu_{0}(X_{i})\right)$ is a transformation of $X_{i}$'s, which are i.i.d. by assumption. Now, we want to check that it is rightly centered, i.e., $\mathbb{E}[\hat{\alpha}] = \alpha = \mathbb{E}[Y(1)-Y(0)]$. We have 
+		\[	\begin{aligned}
+		\mathbb{E}[\hat{\alpha}] &= \mathbb{E}[\frac{1}{n}\sum_{i=1}^{n}\left(\mu_{1}(X_{i})-\mu_{0}(X_{i})\right) ]	\\
+		&= \mathbb{E}[\left(\mu_{1}(X)-\mu_{0}(X)\right) ] &&\text{(ident. dist.)}	\\
+		&= \mathbb{E}[\left(\mathbb{E}[Y(1)|X]-\mathbb{E}[Y(0)|X]\right) ] &&\text{(Def'n)}	\\
+		&= \mathbb{E}[Y(1)-Y(0)] = \alpha.
+		\end{aligned}	\]
+		\begin{remark*}
+			Notice that $\mu_{D_{i}}(X_{i}) := \mathbb{E}\left[Y(D_{i})|X=X_{i}\right]$ is a transformation of $X_{i}$ and therefore a random variable depending only on $X_{i}$, whereas $\mu_{d}(x)$, which is defined as $\mathbb{E}\left[Y(d)|X=x\right] =  \mathbb{E}\left[Y(d)|X=x, D=d\right] $ is just a number (The last equality holds by lemma (\ref{observables, lemma for iden}) and CIA). 
+		\end{remark*}
+		We are left to check the finiteness of second moment of $\left(\mu_{1}(X)-\mu_{0}(X)\right) $, that is, $\mathbb{E}[ || \left(\mu_{1}(X)-\mu_{0}(X)\right) || ] < \infty$, which can be shown under some regularity conditions. \par 
+		Therefore, by Lindeberg CLT, we have 
+		\[	\sqrt{n}[\hat{\alpha} - \alpha] \stackrel{d}{\longrightarrow} N(0,G_{\alpha}^{2})	\]
+		for some $G_{\alpha}^{2} > 0$. \par
+		Now, for the $E_{M}$ part, we have 
+		\[	\sqrt{n} \cdot E_{M} = \frac{1}{\sqrt{n}} \sum_{i=1}^{n}(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i}.	\]
+		Notice that this is not i.i.d. since the term $K_{M}(i)$ counts the times individual $i$ is used in matching and depends on all $(X_{i})_{i=1}^{n}$. So we cannot use Lindeberg CLT. Now we want to check if it is rightly centered:
+		\[	\begin{aligned}
+			\mathbb{E}[E_{M} ] &= \mathbb{E}\left[ \mathbb{E}\left[\frac{1}{\sqrt{n}} \sum_{i=1}^{n}(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i} \big| (X_{i},D_{i})_{i=1}^{n}\right] \right] &&\text{(LIE)}\\
+			&= \mathbb{E}\left[\frac{1}{\sqrt{n}} \sum_{i=1}^{n}(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\cdot \mathbb{E}\left[\epsilon_{i} \big| (X_{i},D_{i})_{i=1}^{n}\right] \right]	\\
+			&= 0
+		\end{aligned}	\]
+		The last equality holds since 
+			\[	\begin{aligned}
+			\mathbb{E}\left[\epsilon_{i} \big| (X_{i},D_{i})_{i=1}^{n}\right] &= \mathbb{E}\left[\epsilon_{i} \big| (X_{i},D_{i})\right] &&\text{(indep. dis.)}	\\
+			&= \mathbb{E}\left[Y_{i} - \mu_{D_{i}}(X_{i}) \big| (X_{i},D_{i})\right]	
+			 &&\text{(Def'n.)}\\
+			&= \mathbb{E}\left[Y_{i} - \mathbb{E}[Y(D_{i})|X=X_{i}] \big| (X_{i},D_{i})\right] &&\text{(Def'n.)}\\
+			&=  \mathbb{E}\left[Y_{i} \big| (X_{i},D_{i})\right] - \mathbb{E}\left[ \mathbb{E}[Y(D_{i})|X=X_{i}] \big| (X_{i},D_{i})\right] \\
+			&=  \mathbb{E}\left[Y_{i} \big| (X_{i},D_{i})\right] - \mathbb{E}[Y(D_{i})|X=X_{i}]  \cdot \mathbb{E}\left[ 1 \big| (X_{i},D_{i})\right] \\
+			&= \mathbb{E}\left[Y_{i} \big| (X_{i},D_{i})\right] - \mathbb{E}[Y(D_{i})|X_{i}]	\\
+			&=  \mathbb{E}\left[Y_{i}(D_{i}) \big| (X_{i},D_{i})\right] - \mathbb{E}[Y(D_{i})|X_{i},D_{i}] &&\text{((\ref{observables, lemma for iden}) and CIA)}	\\
+			&= 0.
+			\end{aligned}	\]
+		 if we assume $(X_{i} ,Y_{i}, D_{i})$ are i.i.d. So it is rightly centered.\par 
+		Although they are NOT independent over the summand $(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i})$, by an alternative central limit theorem, it can be shown that
+		\[	\sqrt{n} \cdot E_{M} \stackrel{d}{\longrightarrow} N(0, G_{E}^{2}).	\]
+		Now, in order to show 
+		\[		\sqrt{n}(\hat{\alpha} - \alpha + E_{M}) \stackrel{d}{\longrightarrow} N(0,G_{\alpha}^{2} + G_{E}^{2}),	\]
+		we need to show that 
+		\[	Cov(\hat{\alpha}-\alpha, E_{M}) = 0.	\]
+		i.e., they are uncorrelated.\par 
+		We have
+		\[	\begin{aligned}
+			Cov (\hat{\alpha}-\alpha, E_{M}) &= Cov (\hat{\alpha}, E_{M}) \\
+			&= Cov\left(\frac{1}{n}\sum_{i=1}^{n}(\mu_{1}(X_{i})-\mu_{0}(X_{i})), \frac{1}{n}\sum_{i=1}^{n}(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i}\right)\\
+			&= Cov\left(\mu_{1}(X)-\mu_{0}(X), \frac{1}{n}\sum_{i=1}^{n}(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i}\right)\\
+			&= \frac{1}{n}\sum_{i=1}^{n} Cov\left(\mu_{1}(X)-\mu_{0}(X), (2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i}\right)	\\
+			&= \frac{1}{n}\sum_{i=1}^{n} \big( \mathbb{E}\left[Cov\left(\mu_{1}(X)-\mu_{0}(X), (2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i} \big| (X_{i},D_{i})_{i=1}^{\infty}\right) \right]	\\
+			&+ Cov\left(\mathbb{E}[\mu_{1}(X)-\mu_{0}(X)\big| (X_{i},D_{i})_{i=1}^{\infty}], \mathbb{E}[(2D_{i}-1)(1+\frac{K_{M}(i)}{M})\epsilon_{i} \big| (X_{i},D_{i})_{i=1}^{\infty}]\right)	\\
+			&= 0 + 0
+		\end{aligned}	\]
+		where the last equality holds since the operation properties of conditional covariance (expectation) and the fact $\mathbb{E}[\epsilon_{i}|(X_{i},D_{i})] = 0$.
+	\end{proof} 
+
+\subsection{Estimation by Propensity Score Matching}
+	\begin{definition}
+		\textit{Propensity score} is deﬁned as the selection probability conditional on the confounding variables, that is,
+		\[	p(X) := \mathbb{P}[D=1 | X].	\]
+	Notice that this is a random variable depending on $X$.
+	\end{definition}
+	We are imposing the same identiﬁcation assumptions, namely, CIA and common support assumption.\par
+	\begin{theorem}\label{prop score, inde.}
+		We have $(\boldsymbol{Y}(\mathbf{1}), \boldsymbol{Y}(\mathbf{0})) \perp \boldsymbol{D} \mid \boldsymbol{X}$ implies
+		\[
+		(Y(1), Y(0)) \perp D \mid p(X) .
+		\]
+	\end{theorem}
+	
+	\begin{remark*}
+		Recall that one key weakness of subclassification(also matching) is the curse of dimensionality. But here, $p(X)$ is just one-dimensional. It can be shown that conditioning on the propensity score is enough to have independence between the treatment indicator and the potential outcomes(we will show this presently). This leads to substantial dimension reduction. 
+	\end{remark*}
+	Before showing that, we need two lemmas.
+	\begin{lemma}\label{perp- lemma, ppcsore}
+		For any three random variables $X,Y$ and $Z$, if $F_{Y|X,Z} = F_{Y|Z}$, where $F_{(\cdot)}$ are cumulative distribution functions, then 
+		\[	Y \perp X \mid  Z.	\]
+	\end{lemma}
+	\begin{proof}
+		We want to show $Y \perp X | Z$, which is, by definition, $F_{X,Y|Z} = F_{X|Z} \cdot F_{Y|Z}$ . 
+		We have 
+		\[	\begin{aligned}
+			F_{Y|X,Z} &= \frac{F_{X,Y,Z}}{F_{X,Z}} \\
+			&=  \frac{F_{X,Y|Z}\cdot F_{Z}}{F_{X|Z} \cdot F_{Z}} \\
+			&=  \frac{F_{X,Y|Z}}{F_{X|Z}}.
+		\end{aligned}	\]
+		Notice that by assumption, we have 
+		\[  F_{Y|Z} = F_{Y|X,Z} = \frac{F_{X,Y|Z}}{F_{X|Z}}.	\]
+		This finishes the proof.
+	\end{proof}
+	We also have \textit{the Tower property}, and we state here without proof.
+	\begin{lemma}\label{tower}
+		\textbf{(Tower property)} \par 
+		If $Z=g(X)$ for some transformation $g$, then $\mathbb{E}[Y|Z,X] = \mathbb{E}[Y|X]$.
+	\end{lemma}
+	Intuitively, since $Z$ is only a transformation of $Z$, it does not carry any extra information.\par 
+	\textbf{Now, we could show Theorem (\ref{prop score, inde.}):}
+	\begin{proof}
+		First, we want to show first that $\mathbb{P}[D|X,p(X)] = \mathbb{P}[D|p(X)] $ for $D=0,1$.\par 
+		 We have 
+		\[	\begin{aligned}
+			\mathbb{P}[D=1 | X, p(X)] &= \mathbb{E}[D|  X, p(X)]	\\
+			&= \mathbb{E}[D|X] &&\text{(Tower)}	\\
+			&= \mathbb{P}(D=1|X)	\\
+			&= p(X).
+		\end{aligned}	\]
+		
+		In addition,
+		\[	\begin{aligned}
+			\mathbb{P}[D=1 | p(X)] &=  \mathbb{E}[D|  p(X)]	\\
+			&= \mathbb{E}[\mathbb{E}[D|X, p(X)]|p(X)]	&&\text{(LIE)}\\
+			&= \mathbb{E}[\mathbb{E}[D|X]|p(X)]	&&\text{(Tower)}\\
+			&= \mathbb{E}[p(X)|p(X)]	\\
+			&= p(X).
+		\end{aligned}	\]
+		
+		Accordingly,
+		\[	\mathbb{P}[D=1 | X, p(X)] = \mathbb{P}[D=1 | p(X)].	\]
+		
+		Note that  $\mathbb{P}[D=0 | X, p(X)] = \mathbb{P}[D=0 | p(X)]$ holds as a direct consequence since $\mathbb{P}[D=0 | X, p(X)] = 1- \mathbb{P}[D=1 | X, p(X)]$ and $\mathbb{P}[D=0 | p(X)] = 1- \mathbb{P}[D=1 | p(X)]$. \par 
+		Therefore, we have $\mathbb{P}[D|X,p(X)] = \mathbb{P}[D|p(X)] $ for $D=0,1$, which is saying $F_{D|X,p(X)} = F_{D|p(X)}$ where $F$ is the cumulative distribution function since $D$ is discrete. Moreover, we have $D \perp X \mid p(X)$ by Lemma (\ref{perp- lemma, ppcsore}) and $\mathbb{E}[D|X,p(X)] = \mathbb{E}[D|p(X)]$ by lemma (\ref{observables, lemma for iden}).    \par 
+		Given the results above, we are left to show that $(Y(1),Y(0)) \perp D | X$ implies $\mathbb{P}[D | Y(1), Y(0), p(X)] = \mathbb{P}[D| p(X)]$ for $D=0,1$, which is equivalent with $F_{D|Y(1), Y(0), p(X)} = F_{D|p(X)}$ and will in turn implies that $(Y(1),Y(0)) \perp D \mid  p(X)$ by Lemma (\ref{perp- lemma, ppcsore}), as desired.\par 
+		We have
+		\begin{equation}\label{ppscore, pf}
+		\begin{aligned}
+		&\mathbb{P}[D=1 | Y(1), Y(0), p(X)] \\
+		&= \mathbb{E}[D|Y(1), Y(0), p(X)]	\\
+		&=  \mathbb{E}[\mathbb{E}[[D|Y(1), Y(0), p(X),X]|Y(1), Y(0), p(X)] &&\text{(LIE)}	\\
+		&=  \mathbb{E}[\mathbb{E}[[D|Y(1), Y(0), X]|Y(1), Y(0), p(X)] &&\text{(Tower)}	\\
+		&= \mathbb{E}[\mathbb{E}[[D|X]|Y(1), Y(0), p(X)] &&\text{(CIA and (\ref{observables, lemma for iden}))} \\
+		&= \mathbb{E}[\mathbb{E}[[D|X, p(X)]|Y(1), Y(0), p(X)] &&\text{(Tower)}	\\
+		&= \mathbb{E}[\mathbb{E}[[D|p(X)]|Y(1), Y(0), p(X)] &&\text{(*)}	\\
+		&= \mathbb{E}[[D|p(X)] \cdot \mathbb{E}[1|Y(1), Y(0), p(X)] &&\text{(**)}\\
+		&= \mathbb{P}[D=1|p(X)].
+		\end{aligned}
+		\end{equation}
+		
+		We showed earlier that the equality (*) is true. The equality (**) holds since  $\mathbb{E}[[D|p(X)]$ is a transformation of $p(X)$, a r.v. depending only on $p(X)$. \par 
+		Similarly, equation (\ref{ppscore, pf}) implies $	\mathbb{P}[D=0 | Y(1), Y(0), p(X)] = \mathbb{P}[D=0|p(X)]$ since $\mathbb{P}[D=0 | Y(1), Y(0), p(X)] = 1- \mathbb{P}[D=1 | Y(1), Y(0), p(X)]$ and $\mathbb{P}[D=0|p(X)]= 1- \mathbb{P}[D=1|p(X)] $.  \par 
+		Therefore, we have $	\mathbb{P}[D | Y(1), Y(0), p(X)] = \mathbb{P}[D|p(X)]$ for $D = 0,1$ and hence $F_{D|Y(1), Y(0), p(X)} = F_{D|p(X)}$ since $D$ is discrete. \par 
+		This implies that $(Y(1),Y(0)) \perp D \mid p(X)$ by lemma (\ref{perp- lemma, ppcsore}), and we are done.
+	\end{proof}
+	We have a corollary here:
+	
+	\begin{corollary}
+		Under CIA and common support conditions, we have 
+		\[	\mathbb{E}[Y(1)-Y(0)|p(X)] = \mathbb{E}[Y|D=1, p(X)] - \mathbb{E}[Y|D=0, p(X)]. 	\]
+	\end{corollary}
+	\begin{proof}
+		The proof is trivial by Theorem (\ref{prop score, inde.}) and Lemma (\ref{observables, lemma for iden}).
+	\end{proof}
+
+	\begin{theorem}
+		\textbf{(Alternative identification of ATE for propensity score).} Under CIA and common support conditions, we have 
+		\[	\alpha_{ATE} = \mathbb{E}\left[\mathbb{E}[Y|D=1, p(X)] - \mathbb{E}[Y|D=0, p(X)]\right].	\]
+	\end{theorem}
+	\begin{proof}
+		By the preceding corollary, the result is obvious using LIE. 
+	\end{proof}
+	This result suggest a two-step procedure to estimate causal effects under the unconfoundedness setup, see the slides for this. 
+	
+\subsection{Estimation using inverse probability weighting}\hfill\par 
+	Recall that under RCT, we have 
+	\[	\begin{aligned}
+	\alpha_{A T E} &=\mathbb{E}[Y(1)-Y(0)] \\
+	&=\mathbb{E}[Y \mid D=1]-\mathbb{E}[Y \mid D= 0] \\
+	&=\mathbb{E}\left[\frac{D}{P(D=1)}Y\right]-\mathbb{E}\left[\frac{1-D}{P(D=0)}Y\right].
+	\end{aligned}	\]
+	
+	In Unconfoundedness, we have the following similar result for \textbf{Inverse Probability Weighting} (IPW):
+	\begin{theorem}
+			\textbf{(Alternative Identification of ATE and ATT).} Assuming CIA and common support assumptions, we have 
+			\[	\alpha_{A T E} = \mathbb{E}\left[\frac{D}{p(X)}Y\right]-\mathbb{E}\left[\frac{1-D}{1-p(X)}Y\right]	\]
+			and
+			\[	\alpha_{ATT} = 
+			\frac{1}{\mathbb{P}[D=1]}\left(\mathbb{E}[DY] - \mathbb{E}\left[p(X)\frac{1-D}{1-p(X)}Y\right]\right)	\]	
+	\end{theorem}
+	\begin{proof}
+		\textbf{(ATE)} \par 
+		We have 
+		\[	\begin{aligned}
+			\mathbb{E}\left[\frac{D}{p(X)}Y\right]	&= \mathbb{E}\left[ \mathbb{E}\left[\frac{D}{p(X)}Y \mid X\right]\right]	\\
+			&=   \mathbb{E}\left[\frac{1}{p(X)} \mathbb{E}\left[DY \mid X\right]\right] \\
+			&=   \mathbb{E}\left[\frac{1}{p(X)} \mathbb{E}\left[DY(1) \mid X\right]\right] \\
+			&=   \mathbb{E}\left[\frac{1}{p(X)}\mathbb{E}\left[D \mid X\right] \cdot \mathbb{E}\left[Y(1) \mid X\right]\right] &&\text{(since $D \perp Y(1) \mid X$)}\\
+			&=  \mathbb{E}\left[\frac{1}{p(X)}\mathbb{P}\left[D =1 \mid X\right] \cdot \mathbb{E}\left[Y(1) \mid X\right]\right] \\
+			&=  \mathbb{E}\left[ \mathbb{E}\left[Y(1) \mid X\right]\right] \\
+			&= \mathbb{E}[Y(1)].
+		\end{aligned}	\]
+		
+	 And $\mathbb{E}\left[\frac{1-D}{1-p(X)}Y\right] = \mathbb{E}\left[Y(0)\right]$ can be shown similarly.
+	\end{proof}
+	
+	\begin{remark*}
+			The virtue of this identification is that propensity score is either known or can be estimated using some method(e.g., Logit). And we do not need the original identification under unconfoundedness, which involves two conditional expectations inside. Both them together gives us the Double Robust Estimation result, which will be discussed in detail later.
+	\end{remark*}
+
+\subsection{Estimation by regression-adjustment}\hfill\par 
+	Recall at the start of this section, we have
+			\[	\begin{aligned}
+	\alpha_{A T E} &= \mathbb{E}[\underbrace{\mathbb{E}[Y|X,D=1]}_{:= \mu_{1}(X)} - \underbrace{\mathbb{E}[Y|X,D=0]}_{:= \mu_{0}(X)} ] \\
+	&= \int_{x} (\mu_{1}(x)-\mu_{0}(x)) \cdot f_{X}(x)dx.
+	\end{aligned}	\]
+	
+	It is very tempting to replace everywhere by sample means. This also suggests a two-step estimator. See the sildes for more details.
+	
+\subsection{Relationship with linear regression}\par 
+	Economists love regressions. In econ, most people just run a regression of  observed outcome on treatment and other covariates:
+	\[
+	\left(\widehat{\alpha}, \widehat{\beta}^{\prime}\right)^{\prime}=\operatorname{argmin}_{a, b} \frac{1}{n} \sum_{i=1}^{n}\left(Y_{i}-a_{i}D_{i}-X_{i}^{\prime} b\right)^{2}
+		\]
+		
+	\emph{But the problem is what this OLS estimator $\widehat{\alpha}$ is actually estimating?} \par 
+	\emph{Or equivalently, we ask the question that what $\alpha$ in}
+	\[		\left(\alpha, \beta^{\prime}\right)^{\prime}=\operatorname{argmin}_{a, b} \mathbb{E}\left[\left(Y_{i}-a_{i}D_{i}-X_{i}^{\prime} b\right)^{2}\right].	\]
+	
+	\emph{is actually identifying. }\par 
+	Suppose $X$ takes only ﬁnitely many values $x^{1}, \dots, x^{K}$, for simplicity. Recall that under unconfoundedness, we have 
+	\[		\alpha_{ATE}  =  \mathbb{E}[\mathbb{E}[Y|X,D=1] - \mathbb{E}[Y|X,D=0]].	\]
+	
+	Let's define $\delta_{X} = \mathbb{E}[Y|X,D=1] - \mathbb{E}[Y|X,D=0]$ (so $\delta_{x^{k}} = \mathbb{E}[Y|X=x^{k},D=1] - \mathbb{E}[Y|X=x^{k},D=0]$). Then we have the following theorem.
+	
+	\begin{theorem}
+		\[	\alpha =\sum_{k=1}^{K} w_{k} \delta_{x^{k}}	\]
+		where
+		\[	\boldsymbol{w}_{k}=\frac{\operatorname{Var}\left( D \mid X= x^{k}\right) \mathbb{P}\left(X=x^{k}\right)}{\sum_{k=1}^{K} \operatorname{Var}\left(D \mid X= x^{k}\right) \mathbb{P}\left(X=x^{k}\right)}.	\]
+	\end{theorem}
+	In words, $\alpha$ is a weighted average of $\delta_{x^{k}}$.  Or $\alpha$ is a weighted version of the average treatment effect. We have $\sum_{k=1}^{K} w_{k} =1$. We are not estimating the true average treatment effect, but it is at least similar.
+	\begin{proof}
+		We have the regression equation $Y_{i} = \alpha D_{i} + X_{i}'\beta + \epsilon_{i}$ with other OLS assumptions, especially, the OLS 2 (the orthogonality) assumption $\mathbb{E}[\epsilon_{i} | D,X]$. Define $\tilde{D} = D - \mathbb{E}[D|X]$. Note that $\mathbb{E}[\tilde{D}] = 0$. Also notice $\tilde{D}$ here is just the residual from a regression of $D$ on all the other covariates $X$. \par 
+		By LIE and the OLS assumptions, $\mathbb{E}[e\tilde{D}] = \mathbb{E}[(Y - \alpha D - X'\beta )(D - \mathbb{E}[D|X])] = 0$. Some algebra turns this equation into:
+		\[	\begin{aligned}
+			\alpha \mathbb{E}\left[D((D - \mathbb{E}[D|X]))\right] &= \mathbb{E}\left[(Y - X'\beta )(D - \mathbb{E}[D|X])\right] \\
+			&= \mathbb{E}\left[Y (D - \mathbb{E}[D|X])\right] - \beta' \underbrace{\mathbb{E}\left[X(D - \mathbb{E}[D|X])\right] }_{*}.
+		\end{aligned}	\]
+		
+		$(*)$ can be shown equal to zero easily. Therefore, 
+		\[	\alpha = \frac{\mathbb{E}\left[Y (D - \mathbb{E}[D|X])\right] }{\mathbb{E}\left[D((D - \mathbb{E}[D|X]))\right] }.	\]
+		
+		The numerator $\mathbb{E}[Y (D - \mathbb{E}[D|X])] = \mathbb{E}[Y \tilde{D}]$ is just $\operatorname{Cov}(Y, \tilde{D})$ since $\mathbb{E}[\tilde{D}] = 0$; For the denominator, we now show that $\operatorname{Var}(\tilde{D}) = \mathbb{E}\left[D((D - \mathbb{E}[D|X]))\right]$. First notice that $\mathbb{E}\left[D((D - \mathbb{E}[D|X]))\right] = \mathbb{E}\left[\mathbb{E}[D^{2}|X] - ([\mathbb{E}[D|X] )^{2}\right]$ by LIE. Moreover, we have 
+		\[	\begin{aligned}
+		\operatorname{Var}(\tilde{D}) &= \mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right] \\
+		&= \mathbb{E}\left[D^{2} - 2D\mathbb{E}[D|X]+ (\mathbb{E}[D|X])^{2}\right] \\
+		&=  \mathbb{E}\left[\mathbb{E}[D^{2}|X] - ([\mathbb{E}[D|X] )^{2}\right].
+		\end{aligned}	\]
+		
+		The above argument shows that $\alpha = \frac{Cov(Y,\tilde{D})}{Var(\tilde{D})}$.\par
+		Now, we have
+		\[	\begin{aligned}
+			\alpha &= \frac{Cov(Y,\tilde{D})}{Var(\tilde{D})} \\
+			&= \frac{\mathbb{E}\left[(Y-\mathbb{E}[Y])(\tilde{D}-\mathbb{E}[\tilde{D}])\right]}{\mathbb{E}\left[(\tilde{D}-\mathbb{E}[\tilde{D}])^{2}\right]} \\
+			&= \frac{\mathbb{E}\left[(D-\mathbb{E}[D|X])Y\right]}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]} &&\text{(since $\mathbb{E}\left[\mathbb{E}[Y]\tilde{D}\right]=0$ and $\mathbb{E}[\tilde{D}] = 0$)} \\
+			&= \frac{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\mathbb{E}\left[Y|D,X\right]\right]}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]} &&\text{(LIE)}
+		\end{aligned}	\] 
+		
+		It can be shown that $\mathbb{E}\left[Y|D,X\right] = \mathbb{E}\left[Y | D=0, X\right] + \delta_{X} \cdot D$. Therefore, $\alpha$ could be further written as 
+		\[	\begin{aligned}
+				\alpha &= \frac{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\mathbb{E}\left[Y|D,X\right]\right]}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]}  \\
+				&= \frac{\overbrace{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\mathbb{E}\left[Y|D=0,X\right]\right]}^{(i)} + \overbrace{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\delta_{X} \cdot D\right]}^{(ii)}}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]}.
+		\end{aligned} \]
+		
+		The term $(i)$ can be shown equal to $0$ by LIE easily. And the term $(ii) = \mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\cdot\delta_{X}\right]$, which is not also hard to show.\par 
+		Accordingly, 
+		\[	\begin{aligned}
+			\alpha &= \frac{\overbrace{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\mathbb{E}\left[Y|D=0,X\right]\right]}^{(i)} + \overbrace{\mathbb{E}\left[(D-\mathbb{E}[D|X])\cdot\delta_{X} \cdot D\right]}^{(ii)}}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]} \\
+			&= \frac{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\cdot\delta_{X}\right]}{\mathbb{E}\left[(D-\mathbb{E}[D|X])^{2}\right]} \\
+			&= \frac{\mathbb{E}\left[\delta_{X}\cdot \mathbb{E}[(D-\mathbb{E}[D|X])^{2} \mid X]\right]}{\mathbb{E}\left[\mathbb{E}[(D-\mathbb{E}[D|X])^{2} \mid X]\right]} &&\text{(LIE)} \\
+			&=  \frac{\sum_{k=1}^{K} \delta_{x^{k}} \cdot \operatorname{Var}\left(D \mid X= x^{k}\right) \mathbb{P}\left(X=x^{k}\right)}{\sum_{k=1}^{K} \operatorname{Var}\left(D \mid X= x^{k}\right) \mathbb{P}\left(X=x^{k}\right)} \\
+			&= \sum_{k=1}^{K} w_{k} \delta_{x^{k}}.
+		\end{aligned}	\]
+		
+		This finishes the proof.
+	\end{proof}
+	We can go further and see the meaning of the weights. Notice that $D$ is just a Bernoulli random variable that only takes two values, so $Var(D \mid X = x^{k}) = \mathbb{P}[D=1 \mid X=x^{k}]\cdot \left(1- \mathbb{P}[D=1 \mid X=x^{k}]\right)$. So those $x^{k}$'s that are closer to $\mathbb{P}[D=1 \mid X=x^{k}] = 0.5$ will get higher weights. On the other hand, it down-weights the $x^{k}$'s that are more extreme in the sense that $\mathbb{P}[D=1 \mid X=x^{k}]$ being close to $0$ or $1$. \par 
+	So running a regression is maybe not a bad idea, even if the true thing is nonlinear. But be careful this is actually not the usual ATE.
+	
+\section{Doubly Robust Estimation}
+	This is the key to introducing various machine learning methods into causal inference. Note that Doubly Robust Estimation is actually a concept, and we will focus on the unconfoundedness setting. We will again assume the CIA and common support assumptions. \par 
+	Recall that we have the following identification results so far:\par 
+	\textbf{(a).} At the beginning of the section \textit{Unconfoundedness}, we have
+	\begin{itemize}
+		\item 	\textbf{(Average Treatment Effect Identification)} 
+			\[	\alpha_{A T E} = \mathbb{E}[\mu_{1}(X) - \mu_{0}(X)]	\]
+		\item 		\textbf{(Average Treatment Effect on Treatments Identification)} 
+		\[	\alpha_{A T T} = \mathbb{E}[Y- \mu_{0}(X)|D=1].		\]
+		where $\mu_{d}(X) := \mathbb{E}[Y(d) \mid X]$.
+	\end{itemize}\par 
+	\textbf{(b).} In the subsection \textit{Estimation using inverse probability weighting}, we have
+		\begin{itemize}
+			\item 	\textbf{(Average Treatment Effect Identification)} 
+				\[	\alpha_{A T E} = \mathbb{E}\left[\frac{D}{p(X)}Y\right]-\mathbb{E}\left[\frac{1-D}{1-p(X)}Y\right]	\]
+			\item 		\textbf{(Average Treatment Effect on Treatments Identification)} 
+			\[	\alpha_{ATT} = 
+			\frac{1}{\mathbb{P}[D=1]}\left(\mathbb{E}[DY] - \mathbb{E}\left[p(X)\frac{1-D}{1-p(X)}Y\right]\right)	\]	
+			where $p(X) := \mathbb{P}[D=1 \mid X]$.
+		\end{itemize}
+	
+	Identification (a) relies on conditional means. This works well if we have good estimators for the conditional means. On the other hand, identification (b) relies on propensity score, and this works well if we have good estimators for the propensity score (i.e., the conditional probability of treatment). \par 
+	By doing OLS, we are assuming that the underlying structure is $Y_{i} = X_{i}' \beta + \epsilon_{i}$. But if it is not(i.e., misspecified), OLS is still consistent, but not to the right thing. Sometimes people call that \textbf{Psedo- True value}. These methods can perform poorly under misspeciﬁcation.\par 
+	\emph{The interesting idea is can we do better by using both of these?} \par 
+	A naive way is to estimate each of them and compare the results. But that may not be the best way. It is in fact possible to combine the regression and IPW based estimators. By doing so, the estimator will be consistent if \dotuline{either} the regression models \dotuline{or} propensity score model is correctly specified. \par 
+	In that case, the estimator is defined as 
+	\[\begin{aligned}
+		\hat{\alpha}_{ATE}^{dr} &= \frac{1}{n}\sum_{i=1}^{n}\left\{\frac{D_{i}}{\hat{p}(X_{i})} Y_{i} + \left(1- \frac{D_{i}}{\hat{p}(X_{i})}\right) \hat{\mu}_{1}(X_{i}) \right\} \\
+		&- \frac{1}{n}\sum_{i=1}^{n}\left\{\frac{1-D_{i}}{1-\hat{p}(X_{i})} Y_{i} + \left(1- \frac{1-D_{i}}{1-\hat{p}(X_{i})}\right) \hat{\mu}_{0}(X_{i}) \right\} \\
+		&= \hat{\Delta}^{dr}(1) - \hat{\Delta}^{dr}(0). 
+	\end{aligned}	\]
+	
+	Note that the estimators for propensity score and conditional expectation both appear here. We are going to show that this estimator is consistent if \textbf{EITHER} the propensity score estimator is consistent \textbf{OR} the conditional probability estimator is consistent (or both).\par 
+	We will need the following assumption 
+	\begin{assumption}
+		\textbf{(Uniform Consistency).} We have 
+		\[	\sup_{x} \left| \hat{\mu}_{d}(X_{i}) - \mu_{d}^{*}(X) \right| = o_{p}(1) \qquad \text{and} \qquad \sup_{x} \left| \hat{p}(X_{i}) - p^{*}(X) \right| = o_{p}(1) 	\]
+		where $\mu_{d}^{*}(X)$ and $\hat{p}(X)$ are some random variable. In other words, $\mu_{d}^{*}(X)$ and $p^{*}(X)$ may or may not be $\mu_{d}(X)$ and $p(X)$, respectively.
+	\end{assumption}
+	\begin{proof}
+		\textbf{(Sketch).} We will show $\hat{\Delta}^{dr}(1) $ is consistent for $\mathbb{E}[Y(1)]$, and the statement $\hat{\Delta}^{dr}(0) $ being consistent for $\mathbb{E}[Y(0)]$ can be shown analogously. \par 
+		Recall the notations
+		\begin{itemize}
+			\item $\mu_{d}(X) := \mathbb{E}[Y(d) | X]$ for $d \in \{0,1\}$ as a random variable depending on $X$;
+			\item $\mu_{d}(x) := \mathbb{E}[Y(d) | X=x]$ for $d \in \{0,1\}$ as a number;
+			\item $p(X) := \mathbb{P}[D=1 | X]$ as a random variable depending on $X$;
+			\item $p(x) := \mathbb{P}[ D=1 | X=x]$ as a number.
+		\end{itemize}
+
+		Ideally, we want some estimators $\hat{\mu}_{d}$ and $\hat{p}$ so that either $\hat{\mu}_{d}(X_{i}) \stackrel{p}{\rightarrow} \mu_{d}(X)$ or $\hat{p}(X_{i}) \stackrel{p}{\rightarrow} p(X)$ gives us the consistency result we want. And we want to show $ \hat{\Delta}^{dr}(1)  = \mathbb{E}[Y(1)] + o_{p}(1)$ is true.\par 
+		By uniform consistency, it can be shown that
+	\begin{equation}\label{2robust, ident}
+		\begin{aligned}
+		\hat{\Delta}^{dr}(1) &= \frac{1}{n}\sum_{i=1}^{n}\left\{\frac{D_{i}}{\hat{p}(X_{i})} Y_{i} + \left(1- \frac{D_{i}}{p^{*}(X)}\right) \hat{\mu}_{1}(X_{i}) \right\} \\
+		&=  \frac{1}{n}\sum_{i=1}^{n}\left\{\frac{D_{i}}{p^{*}(X)} Y_{i} + \left(1- \frac{D_{i}}{p^{*}(X)}\right) \mu_{1}^{*}(X) \right\} + o_{p}(1).
+		\end{aligned}
+	\end{equation}
+	
+	Then, the Law of Large Numbers implies
+	\[	\begin{aligned}
+		(\ref{2robust, ident}) &= \mathbb{E}\left[\frac{D_{i}}{p^{*}(X)} Y + \left(1- \frac{D}{p^{*}(X)}\right) \mu_{1}^{*}(X)  \right] + o_{p}(1) \\
+		&= \mathbb{E}\left[ Y(1) + \frac{Y(1) \cdot D}{p^{*}(X)} - \frac{p^{*}(X)}{p^{*}(X)}Y(1) - \left( \frac{D-p^{*}(X)}{p^{*}(X)}\right) \mu_{1}^{*}(X)  \right] + o_{p}(1) \\
+		&= \mathbb{E}\left[ Y(1) + \frac{Y(1) \cdot D}{p^{*}(X)} - \frac{p^{*}(X)}{p^{*}(X)}Y(1) - \left( \frac{D-p^{*}(X)}{p^{*}(X)}\right) \mu_{1}^{*}(X)  \right] + o_{p}(1) \\
+		&= \mathbb{E}\left[ Y(1)\right] +  \mathbb{E}\left[\frac{ D-p^{*}(X)}{p^{*}(X)} \left(Y(1)-\mu_{1}^{*}(X)\right)  \right] + o_{p}(1) \\
+		&= \mathbb{E}\left[ Y(1)\right] + \mathbb{E}[R]  + o_{p}(1).
+	\end{aligned}	\]
+	Note that we did not put any restriction on $p^{*}(X)$ and $\mu_{1}^{*}(X)$ here, that is, they may not be  $p(X)$ and $\mu_{1}(X)$, respectively. Now, we are left to show that $\mathbb{E}[R]  = 0$ is true if we impose either $p^{*}(X) = p(X)$ or  $\mu_{1}^{*}(X) = \mu_{1}(X)$, which finishes the proof. \par 						
+	\textbf{(Case 1).} Assume $p^{*}(X) = p(X)$. In words, the estimator involving propensity score is working. In this case, $\mu_{1}(X)$ can be anything. Now, 
+	\[	 \begin{aligned}
+		\mathbb{E}[R]  &= \mathbb{E}\left[\frac{ D-p^{*}(X)}{p^{*}(X)} \left(Y(1)-\mu_{1}^{*}(X)\right)  \right]	\\
+		&= \mathbb{E}\left[\frac{ D-p(X)}{p(X)} \left(Y(1)-\mu_{1}^{*}(X)\right)  \right]\\
+		&= \mathbb{E}\left[\mathbb{E}\left[\frac{ D-p(X)}{p(X)} \left(Y(1)-\mu_{1}^{*}(X)\right) \big| X, Y(1)\right]  \right] &&\text{(LIE)} \\
+		&= \mathbb{E}\left[ \frac{\left(Y(1)-\mu_{1}^{*}(X)\right)}{p(X)} \left(\mathbb{E} \left[ D\big| X, Y(1)\right]- p(X) \right) \right] \\
+		&=  \mathbb{E}\left[ \frac{\left(Y(1)-\mu_{1}^{*}(X)\right)}{p(X)} \left(p(X)-p(X) \right) \right]
+	\end{aligned} \]
+	where the last equation holds since $ \mathbb{E} \left[ D\big| X, Y(1)\right] =  \mathbb{E} \left[ D\big| X\right] = \mathbb{P}[D=1|X] = p(X)$ by CIA consumption, lemma (\ref{observables, lemma for iden}) and the definition of $p(X)$. So we have $	\mathbb{E}[R]  = 0$ under $p^{*}(X) = p(X)$.\par 
+	
+	\textbf{(Case 2).} Assume $\mu_{1}^{*}(X) = \mu_{1}(X)$. In words, the estimator involving conditional expectation is working. In this case, $p^{*}(X)$ can be anything. Now, 
+	\[	 \begin{aligned}
+	\mathbb{E}[R]  &= \mathbb{E}\left[\frac{ D-p^{*}(X)}{p^{*}(X)} \left(Y(1)-\mu_{1}^{*}(X)\right)  \right]	\\
+	&= \mathbb{E}\left[\frac{ D-p^{*}(X)}{p^{*}(X)} \left(Y(1)-\mu_{1}(X)\right)  \right] \\
+	&= \mathbb{E}\left[\mathbb{E}\left[\frac{ D-p^{*}(X)}{p^{*}(X)} \left(Y(1)-\mu_{1}(X)\right) \big| X, D\right]  \right] &&\text{(LIE)} \\
+	&= \mathbb{E}\left[ \frac{ D-p^{*}(X)}{p^{*}(X)} \cdot \left(\mathbb{E}\left[ Y(1) \big| X, D\right] - \mu_{1}(X)\right)  \right] \\
+	&=\mathbb{E}\left[ \frac{ D-p^{*}(X)}{p^{*}(X)} \cdot \left(\mu_{1}(X) - \mu_{1}(X)\right)  \right] 
+	\end{aligned} \]
+	where the last equation holds since $ \mathbb{E}\left[ Y(1) \big| X, D\right] = \mathbb{E}\left[ Y(1) \big| X\right] = \mu_{1}(X)$ by CIA consumption, lemma (\ref{observables, lemma for iden}) and the definition of $\mu_{1}(X)$. So we have $	\mathbb{E}[R]  = 0$ under $\mu_{1}^{*}(X) = \mu_{1}(X)$.\par 
+	The proof of the case where both conditions holds is trivial and this completes the proof.
+	
+	\end{proof}
+	If we have $p^{*}(X) \ne p(X)$ and $\mu_{1}^{*}(X) \ne \mu_{1}(X)$, then the doubly robust estimator will not work. But if they are close, $\mathbb{E}[R]$ will be small as we have a product inside. The doubly robust estimator is still quite powerful.
+	
+\section{Standard Errors and Resampling Methods}
+	We will discuss Standard Errors and Resampling Methods in a regression setting. But as you may recall, regression is linked to causal inference. Specifically, in RCT, regression gives ATE and ATT perfectly; and in unconfoundedness, we get a weighted version of ATE. 
+	
+\subsection{Standard Errors for i.i.d. Data}\footnote{We also have a discussion on this in the first part of the course.}\hfill\par 
+	Recall that for the linear regressions under homoskedasticity, we have 
+	\[	Y_{i} = X_{i}'\beta + \epsilon_{i}	\]
+	 where $X_{i}$ and $\beta$ are $k$ dimensional column vectors and $Y_{i}$, $\epsilon_{i}$ are scalars(In this section, be careful with the boldface letters and regular letters as they represent different things). We will have, in particular, the mean independence assumption $\mathbb{E}[\epsilon_{i} | X] = 0$, the homoskedasticity assumption  $\mathbb{E}[\epsilon_{i}^{2} | X] = \sigma^{2}$ and other OLS assumptions.  \par
+	 Recall from the first part of the course, we have 
+	 \[	\hat{\beta} = \left(\frac{1}{n}\sum_{i=1}^{n}X_{i}X_{i}'\right)^{-1}  \left(\frac{1}{n}\sum_{i=1}^{n}X_{i}Y_{i}\right).	\]
+	 
+	 Now, we want to rewrite the expression of $\hat{\beta}$ in matrices forms. \par 
+	 Define $\bm{X} = \begin{pmatrix}
+	 X_{1}' \\
+	 \vdots \\
+	 X_{n}'
+	 \end{pmatrix}$, which is a $n$-by-$k$ matrix. Accordingly, $\bm{X}' = \begin{pmatrix}
+	 X_{1} & \cdots & X_{n}
+	 \end{pmatrix}$
+	 is a $k$-by-$n$ matrix. \par 
+	 Denoted $\bm{Y} = \begin{pmatrix}
+	 	Y_{1} \\
+	 	\vdots \\
+	 	Y_{n}
+	 \end{pmatrix}$ and $\bm{\epsilon} = \begin{pmatrix}
+	 \epsilon_{1} \\
+	 \vdots \\
+	 \epsilon_{n}
+	 \end{pmatrix}$ , and they are $n$-dimensional column vectors. \par 
+	 As a result of the above notations, we have $\bm{Y} = \bm{X}\beta + \bm{\epsilon}$ (as you may verify).\par 
+	 Therefore, we could rewrite $\hat{\beta}$ as (verify this also)
+	 \begin{equation}\label{ols, matrices}
+	 	\hat{\beta} = \left(\bm{X}'\bm{X}\right)^{-1}\left(\bm{X}' \bm{Y}\right).
+	 \end{equation}
+	 
+	 We know that 
+	 \[	\sqrt{n}(\hat{\beta} - \beta) \stackrel{d}{\longrightarrow} N(0,Var(\hat{\beta})).	\]
+	 
+	 For $Var(\hat{\beta})$, the law of total variance implies
+	 \[	 Var(\hat{\beta}) = \mathbb{E}\left[Var(\hat{\beta} | \bm{X})\right] + Var\left(\mathbb{E}\left[\hat{\beta} | \bm{X}\right]\right).	\]
+	 
+	 We have 
+	 \[	\begin{aligned}
+		 Var\left(\mathbb{E}\left[\hat{\beta} | \bm{X}\right]\right) &= Var\left(\mathbb{E}\left[\left(\bm{X}'\bm{X}\right)^{-1}\left(\bm{X}' \bm{Y}\right) | \bm{X}\right]\right) &&\text{(By (\ref{ols, matrices}))}\\
+		 &= Var\left(\left(\bm{X}'\bm{X}\right)^{-1} \bm{X}' \mathbb{E}\left[ \bm{Y} | \bm{X}\right]\right) \\
+		 &= Var\left(\left(\bm{X}'\bm{X}\right)^{-1} \bm{X}' \mathbb{E}\left[ \bm{X}\beta + \bm{\epsilon} | \bm{X}\right]\right) &&\text{(Substitute $\bm{Y} = \bm{X}\beta + \bm{\epsilon}$)}\\
+		 &= Var\left(\beta +\left(\bm{X}'\bm{X}\right)^{-1} \bm{X}' \mathbb{E}\left[ \bm{\epsilon} | \bm{X}\right]\right) &&\text{(Since $\left(\bm{X}'\bm{X}\right)^{-1}\bm{X}'\bm{X} = \bm{I}_{k}$)}\\
+		 &= Var\left(\beta\right) &&\text{(Since $ \mathbb{E}\left[ \bm{\epsilon} | \bm{X}\right]=0$)}\\
+		 &= 0.
+	 \end{aligned}	\]
+	 
+	 Therefore, 
+	  \[	 Var(\hat{\beta}) = \mathbb{E}\left[Var(\hat{\beta} | \bm{X})\right].	\]
+	  
+	\begin{remark*}
+		Intuitively, this means if we could estimate $Var(\hat{\beta} | \bm{X})$ inside the expectation, then we could average them by $\frac{1}{n} \sum_{i=1}^{n} Var(\hat{\beta} | \bm{X})$, which will converge in probability to $ \mathbb{E}\left[Var(\hat{\beta} | \bm{X})\right] =  Var(\hat{\beta})$ as the times of re-sampling increases. This might be a reason why we are interested in $Var(\hat{\beta} | \bm{X})$ instead of $Var(\hat{\beta})$ directly.
+	\end{remark*}
+
+	Let's take a further look of $Var(\hat{\beta} | \bm{X})$. Actually, we could simplify it further in the homoskedasticity case. Before that, let's introduce a lemma.
+	\begin{lemma}\label{homo, cond. var. resid.}
+		For the linear regression under homoskedasticity, we have 
+		\[	Var( \bm{\epsilon}| \bm{X}) = \sigma^{2} \bm{I}_{n}	\]
+		where $ \bm{I}_{n}$ is the identity matrix of size $n$. 
+	\end{lemma}
+	\begin{proof}
+		We have 
+		\[	\begin{aligned}
+		Var( \bm{\epsilon}| \bm{X}) &= \mathbb{E}\left[(\bm{\epsilon} - \mathbb{E}[\bm{\epsilon}|\bm{X}]) (\bm{\epsilon} - \mathbb{E}[\bm{\epsilon}|\bm{X}]) '\Big| \bm{X}\right] &&\text{(By Definition).} \\
+		&= \mathbb{E}\left[\bm{\epsilon}\bm{\epsilon}' \Big| \bm{X}\right] -  \mathbb{E}\left[\bm{\epsilon} \Big| \bm{X}\right]\mathbb{E}\left[\bm{\epsilon}' \Big| \bm{X}\right]\\
+		&= \mathbb{E}\left[\bm{\epsilon}\bm{\epsilon}' \Big| \bm{X}\right] &&\text{(Mean Independence Assump.)} \\
+		&= \mathbb{E}\left[\begin{pmatrix}
+		\epsilon_{1}^{2} &0 & 0  \\
+		0&\ddots&0 \\
+		0 &0&	\epsilon_{n}^{2}
+		\end{pmatrix}\Big| \bm{X}\right] &&\text{(Independence Assump.)} \\
+		&= \mathbb{E}\left[ \sigma^{2} \bm{I}_{n} | \bm{X} \right] &&\text{(Homoskedasticity Assump.)} \\
+		&= \sigma^{2} \bm{I}_{n}.
+		\end{aligned}	\]
+	\end{proof}
+
+	\begin{definition}
+		Let us define $	Var( \bm{\epsilon}| \bm{X}) = \bm{D}$. The above lemma shows that 
+		\[	\bm{D} =  \mathbb{E}\left[\begin{pmatrix}
+		\epsilon_{1}^{2} &0 & 0  \\
+		0&\ddots&0 \\
+		0 &0&	\epsilon_{n}^{2}
+		\end{pmatrix}\Big| \bm{X}\right] =  \begin{pmatrix}
+		\mathbb{E}[\epsilon_{1}^{2} | \bm{X}]  &0 & 0  \\
+		0&\ddots&0 \\
+		0 &0&\mathbb{E}[\epsilon_{n}^{2} | \bm{X}]
+		\end{pmatrix} =   \begin{pmatrix}
+		\mathbb{E}[\epsilon_{1}^{2} | X_{1}]  &0 & 0  \\
+		0&\ddots&0 \\
+		0 &0&\mathbb{E}[\epsilon_{n}^{2} | X_{n}]
+		\end{pmatrix} =    \begin{pmatrix}
+		\sigma^{2}  &0 & 0  \\
+		0&\ddots&0 \\
+		0 &0&	\sigma^{2}  
+		\end{pmatrix}. 	\]
+		\emph{But the last equality holds only for the homoskedasticity case.}
+	\end{definition}
+
+	Now, we can simplify the conditional variance $Var(\hat{\beta} | \bm{X}) $ further:
+	\[	\begin{aligned}
+	Var(\hat{\beta} | \bm{X}) &= Var\left( \left(\bm{X}'\bm{X}\right)^{-1}\left(\bm{X}' \bm{Y}\right) | \bm{X} \right) \\
+	&= Var\left( \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}' (\bm{X}\beta + \bm{\epsilon}) | \bm{X} \right) \\
+	&=  \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  Var\left((\bm{X}\beta + \bm{\epsilon}) | \bm{X} \right) \bm{X} \left(\bm{X}'\bm{X}\right)^{-1} \\
+	&= \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  Var\left( \bm{\epsilon} | \bm{X} \right) \bm{X} \left(\bm{X}'\bm{X}\right)^{-1} &&\text{($\bm{X}\beta$ is a constant in cond. var.)}\\
+	&=  \sigma^{2} \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  \bm{I}_{n} \bm{X} \left(\bm{X}'\bm{X}\right)^{-1} &&\text{(lemma(\ref{homo, cond. var. resid.}))} \\
+	&= \sigma^{2} \left(\bm{X}'\bm{X}\right)^{-1}.
+	\end{aligned}	\]
+	
+	In the expression above, $\bm{X}$ is observed, so the key term is $\sigma^{2}$. \par 
+	If we observe $\epsilon_{1}, \dots, \epsilon_{n}$ directly, then we could average the square of them out, and get
+	\[	\frac{1}{n}\sum_{i=1}^{n} \epsilon_{i}^{2} \stackrel{p}{\longrightarrow} \mathbb{E}[\epsilon^{2}]	\]
+	
+	Moreover, we have $\mathbb{E}[\epsilon^{2}] = \mathbb{E}[\mathbb{E}[\epsilon^{2}|X]] = \mathbb{E}[\sigma^{2}] = \sigma^{2} = \mathbb{E}[\epsilon^{2}|X]$ under homoskedasticity.\par 
+	\emph{But we do not have direct observation on the $\epsilon_{i}$'s.} Then we need to replace $\epsilon_{i}$ by the estimator $\hat{\epsilon}_{i}$, which is defined as $\hat{\epsilon}_{i} = Y_{i} - X_{i}\hat{\beta}$. Equivalently, $\bm{\hat{\epsilon}} = \bm{Y} - \bm{X} \beta$ in matrices language. \par 
+	Define $\bm{M} = \bm{I}_{n} - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'$. Then we have 
+	\[	\begin{aligned}
+		\bm{M}\bm{\epsilon} &= \left(  \bm{I}_{n} - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' \right) \left(\bm{Y} - \bm{X}\beta \right)  \\
+		&= \left(\bm{Y} - \bm{X}\beta \right) - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'\left(\bm{Y} - \bm{X}\beta \right) \\
+		&= \left(\bm{Y} - \bm{X}\beta \right) - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'\left(\bm{Y} - \bm{X}\beta \right)\\
+		&=  \bm{Y} - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}'\bm{Y} \\
+		&=  \bm{Y} - \bm{X}\hat{\beta} &&\text{(\ref{ols, matrices})} \\
+		&= \bm{\hat{\epsilon}}.
+	\end{aligned}  	\]
+	
+	\begin{framed}
+		 \textbf{(Sidenote.)} Notice that this $M$ matrix is a transformation of only $\bm{X}$. Basically if you multiply it by something that of a function of $X$, the product is zero. We also have 
+		 \begin{itemize}
+		 	\item
+		 	\[	 \bm{M} =  \bm{M}'	\]
+		 	\item
+		 	\[	 \bm{M} \bm{M} = \bm{M}	\]
+		 \end{itemize}
+	 hold. (As you may want to verify).
+	\end{framed}
+
+	We have the following facts
+	\begin{itemize}
+		\item 
+		\[	\mathbb{E}[\bm{\hat{\epsilon}} | \bm{X}] = \mathbb{E}[\bm{M}\bm{\epsilon} | \bm{X}] = \bm{M} \mathbb{E}[\bm{\epsilon} | \bm{X}] = 0.	\]
+		\item
+		\[	Var(\bm{\hat{\epsilon}} | \bm{X}) = Var(\bm{M}\bm{\epsilon} | \bm{X}) = \bm{M} Var(\bm{\epsilon}| \bm{X})\bm{M}'  =  \bm{M} Var(\bm{\epsilon}| \bm{X})\bm{M}.	\]
+	\end{itemize}
+	To estimate $\sigma^{2} = \mathbb{E}[\epsilon^{2}_{i}]$, we use $\hat{\sigma}^{2}$, which is defined as 
+	\[	\begin{aligned}
+		\hat{\sigma}^{2} &= \frac{1}{n}\sum_{i=1}^{n} \hat{\epsilon}_{i}^{2}	\\
+			&= \frac{1}{n} \bm{\hat{\epsilon}}' \bm{\hat{\epsilon}} \\
+			&= \frac{1}{n} \bm{\epsilon}'\bm{M}' 	\bm{M}\bm{\epsilon} \\
+			&=  \frac{1}{n} \bm{\epsilon}' 	\bm{M}\bm{\epsilon} \\
+			&= \frac{1}{n} tr\left(\bm{\epsilon}' 	\bm{M}\bm{\epsilon}\right)	&&\text{$tr(\cdot)$ denotes the trace of a matrix}\\
+			&=  \frac{1}{n} tr\left( 	\bm{M}\bm{\epsilon}\bm{\epsilon}'\right) &&\text{($tr(AB)=tr(BA)$ if both are defined).}	\\
+	\end{aligned}	\]
+	Then, we have 
+	\[	\begin{aligned}
+		\mathbb{E}[\hat{\sigma}^{2} | \bm{X}] &= \mathbb{E}[\frac{1}{n} tr\left( 	\bm{M}\bm{\epsilon}\bm{\epsilon}'\right) | \bm{X}] \\
+		&= \frac{1}{n} tr\left( \bm{M} \mathbb{E}[\bm{\epsilon}\bm{\epsilon}'| \bm{X}]\right) &&\text{(Linearity of expectation \& trace)} \\
+		&=  \frac{1}{n} tr\left( \bm{M} \bm{D}\right) \\
+		&= \frac{1}{n} tr\left( \bm{M} \sigma^{2} \bm{I}_{n}\right) &&\text{(Homoskedasticity Assump.)} \\
+		&= \frac{\sigma^{2} }{n} tr\left( \bm{M}\right)\\
+		&=  \frac{\sigma^{2} }{n} tr\left( \bm{I}_{n} - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' \right) \\
+		&= \sigma^{2}\frac{n-k}{n}
+	\end{aligned}	
+	\]
+	where the last equality holds since $tr\left( \bm{I}_{n} - \bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' \right) = tr\left( \bm{I}_{n} \right) - tr\left(\bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' \right) = rank(\bm{I}_{n})  - rank(\bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' )= n - k$. This result shows $	\mathbb{E}[\hat{\sigma}^{2} | \bm{X}] $ is a (downward) biased estimator for $\sigma^{2}$. \par 
+	It turns out that the estimator $s^{2}$ defined as $s^{2} = \frac{1}{n-k}\sum_{i=1}^{n} \hat{\epsilon}_{i}^{2}$ is unbiased. And the estimator $\hat{V}_{\hat{\beta}}$ defined as $\hat{V}_{\hat{\beta}} = s^{2}(\bm{X}'\bm{X})^{-1}$ is an unbiased estimator for conditional variance.\par 
+
+	For the herteroskedasticity case, we change the consumption $\mathbb{E}[\epsilon^{2}|X_{i}] = \sigma^{2}$ to $\mathbb{E}[\epsilon^{2}|X_{i}] = \sigma^{2}(X_{i})$.  \par 
+	In this case, we now have 
+		\[	\begin{aligned}
+	Var(\hat{\beta} | \bm{X}) &= Var\left( \left(\bm{X}'\bm{X}\right)^{-1}\left(\bm{X}' \bm{Y}\right) | \bm{X} \right) \\
+	&= Var\left( \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}' (\bm{X}\beta + \bm{\epsilon}) | \bm{X} \right) \\
+	&=  \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  Var\left((\bm{X}\beta + \bm{\epsilon}) | \bm{X} \right) \bm{X} \left(\bm{X}'\bm{X}\right)^{-1} \\
+	&= \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  Var\left( \bm{\epsilon} | \bm{X} \right) \bm{X} \left(\bm{X}'\bm{X}\right)^{-1} \\
+	&=  \left(\bm{X}'\bm{X}\right)^{-1} \bm{X}'  \bm{D} \bm{X} \left(\bm{X}'\bm{X}\right)^{-1}. 
+	\end{aligned}	\]
+	
+	It is tempting to replace $\bm{D}$ by an estimator $\bm{\hat{D}}$. The problem is to estimate $\bm{D}$, we have $n$ unknowns, namely, $\mathbb{E}[\epsilon_{i}^{2} | X_{i}]$ for $i = 1,2,3, \cdots, n$, but we only have $n$ data points. So we cannot estimate this consistently. Actually, we do not need to estimate this $\bm{D}$. Hal White’s insight is that we don’t need to estimate D consistently. We could just estimate $\bm{X}'  \bm{D} \bm{X}$, which has a much smaller dimensionality. Although the original Hal White (1980) \footnote{White, H. (1980). \textit{A Heteroskedasticity-Consistent Covariance Matrix Estimator and a Direct Test for Heteroskedasticity}. Econometrica, 48(4), 817–838. https://doi.org/10.2307/1912934} ’s standard errors is consistent and robust to the problem heteroskedasticity, it also leads to over-rejection, which is not desirable in practice. Several different modification have been proposed, and we will not discuss them here.
+	
+\subsection{Standard Errors for Cluster Sampled Data}
+	In a lot of situations, we do not have i.i.d. data. We want to benefit from the richer information from at the individual level but need to deal with the dependence within the clusters. We talked about this intuitively in the first part of the course. There is also something called ``\textbf{Two-way clustering}'' and we will not explore these topics further here due to the time constraint.
+	
+\subsection{Resampling Methods}\hfill\par 
+	The traditional way of dealing with variance estimation is that using CLT for sample means to get asymptotic variance estimation. This does not work if the statistics of interest is not a sample mean. For example, the ATE estimator. In that case, we may need to do linearization and using Taylor expansion and apply CLT to the leading term which is a sample mean, and use the Delta method to combine them(as what we did in the RCT section). That is the usual way but sometimes things can get really complicated. There is a way to somewhat get around of these theoretical hassle, which is called the ``\textbf{Resampling Methods}''.\par 
+	Roughly speaking, there are two resampling methods, namely, \textbf{the jackknife} and \textbf{the bootstrap}, and they are closely correlated. For these methods, it does not matter how nonlinear the underlying structure is. They might not be the best all the time, but certainly have some advantages. 
+	
+\subsubsection{The Jackknife}\hfill\par 
+	Let $\hat{\theta}$ be \emph{any} estimator of a vector-valued parameter $\theta$ based on sample of size $n$. We denote $Var(\hat{\theta})$ as $V_{\hat{\theta}}$. This is the statistic that we want to estimate by Jackknife. \par 
+	Define the \textbf{ leave-one-out estimators} $\hat{\theta}_{(-i)}$ as the estimator which is computed using the formula for $\hat{\theta}$ but with observation $i$ being deleted. Notice that we have $n$  leave-one-out estimators. 
+	\begin{definition}
+		\textit{Tukey’s jackknife estimator} for $V_{\hat{\theta}}$ is defined as a scale of the sample variance of the leave-one-out estimators:
+		\begin{equation}\label{jackknife}
+		V_{\hat{\theta}}^{jack} = \frac{n-1}{n}\sum_{i=1}^{n}\left(\hat{\theta}_{(-i)}-\bar{\theta}\right)\left(\hat{\theta}_{(-i)}-\bar{\theta}\right)'
+		\end{equation}
+		where $\bar{\theta} = n^{-1}\sum_{i=1}^{n}\hat{\theta}_{(-i)}$ is the sample mean of the $n$ leave-one-out estimators.
+	\end{definition}
+
+	It is worth to point out that the Jackknife works in general unless $\hat{\theta}$ is a non-smooth function of data. (except for some cases, which we will ignore here.)\par 
+	The Jackknife standard error is $s_{\hat{\theta}}^{jack} = \sqrt{V_{\hat{\theta}}^{jack}}$.\par 
+	With these, we can construct confidence interval and do inference:
+	\[	C^{j a c k}=\left[\hat{\theta}-z_{1-\alpha / 2} s_{\hat{\theta}}^{j a c k}, \hat{\theta}+z_{1-\alpha / 2} s_{\hat{\theta}}^{j a c k}\right]	\] 
+	where $z_{1-\alpha / 2}$ is the $1-\alpha / 2$ quantile of $N(0,1)$.\par 
+	A convenient feature of the jackknife estimator is that the formula (\ref{jackknife}) is quite general and does not require any technical (exact or asymptotic) calculations. A downside is that it requires $n$ separate estimations, which can be computationally costly.\par
+	We will illustrate Jackknife in the context of sample mean and linear regression.\par 
+	$\blacksquare$ \textbf{Sample Mean.}\par 
+	Suppose we have a sequence of i.i.d. random variables $\{Y_{i}\}$ for $i = 1,2,3, \dots, n$ and the estimator of interest is the sample mean $\hat{\theta} = \frac{1}{n}\sum_{i=1}^{n}Y_{i}$. We know that we have 
+	\[	Var(\hat{\theta}) = Var(\frac{1}{n}\sum_{i=1}^{n}Y_{i}) = \frac{1}{n^{2}}Var(\sum_{i=1}^{n}Y_{i}) = \frac{1}{n}Var(Y) 	\]
+	where the last equality holds by the i.i.d. assumption.\par 
+	Now, we show that the Jackknife estimator $V^{Jack}_{\hat{\theta}}$ does a good job of estimating $Var(\hat{\theta}) $. \par 
+	$\bullet$ \emph{The leave-one-out estimators} are 
+	\[	\begin{aligned}
+	\hat{\theta}_{(-i)} &= \frac{1}{n-1}\sum_{j \ne i}Y_{j}\\
+	&= \frac{n}{n-1}\hat{\theta} - \frac{1}{n-1}Y_{i}
+	\end{aligned}	\]
+	for $i = 1,2,3, \dots, n$.\par 
+	$\bullet$\emph{ The sample average of leave-one-out estimators} is 
+	\[	\begin{aligned}
+	\bar{\theta} &= \frac{1}{n}\sum_{i=1}^{n}\hat{\theta}_{(-i)} \\
+	&=  \frac{1}{n}\sum_{i=1}^{n} \left(\frac{n}{n-1}\hat{\theta} - \frac{1}{n-1}Y_{i}\right) \\
+	&= \frac{n}{n-1}\hat{\theta} - \frac{1}{n-1}\frac{1}{n}\sum_{i=1}^{n}Y_{i}\\
+	&=  \frac{n}{n-1}\hat{\theta} - \frac{1}{n-1}\hat{\theta}	\\
+	&= \hat{\theta}.
+	\end{aligned}	\]
+	
+	$\bullet$ \emph{Tukey’s jackknife estimator for $V_{\hat{\theta}}$ is}
+	\[	\begin{aligned}
+		V^{Jack}_{\hat{\theta}} &= \frac{n-1}{n}\sum_{i=1}^{n} \left(\hat{\theta}_{(-i)} - \bar{\theta}\right) \left(\hat{\theta}_{(-i)} - \bar{\theta}\right)'  \\
+		&= \frac{n-1}{n}\sum_{i=1}^{n} \left(\frac{1}{n-1}\hat{\theta} - \frac{1}{n-1}Y_{i}\right)^{2} \\
+		&= \frac{1}{n(n-1)} \sum_{i=1}^{n} \left(\hat{\theta} - Y_{i}\right)^{2} \\
+		&= \frac{1}{n}\left( \frac{1}{n-1} \sum_{i=1}^{n} \left(\hat{\theta} - Y_{i}\right)^{2} \right)
+	\end{aligned}	\]
+	
+	Notice that $\left( \frac{1}{n-1} \sum_{i=1}^{n} \left(\hat{\theta} - Y_{i}\right)^{2} \right)$ is an unbiased estimator for the variance of sample mean(see the lemma below), which means it converges in probability to $Var(\hat{\theta})$. By continuous mapping theorem, we have shown that $V^{Jack}_{\hat{\theta}} = \frac{1}{n}\left( \frac{1}{n-1} \sum_{i=1}^{n} \left(\hat{\theta} - Y_{i}\right)^{2} \right)$ converges in probability to $\frac{1}{n} Var(\hat{\theta})$, as desired. (Notice that $\frac{1}{n}$ is just a constant here).
+	\begin{framed}
+		\begin{lemma}
+			Let $\{X_{i}\}$ be a sequence of i.i.d. r.v.s, with $\mathbb{E}[X] = \mu$ and $Var(X)=\sigma^{2}$, then
+			\[	\mathbb{E}[S^{2}] := \mathbb{E}[\frac{1}{n-1}\sum_{i=1}^{n} \left(X_{i} - \bar{X}\right)^{2}] = \sigma^{2}	\]
+			where $\bar{X} := \frac{1}{n}\sum_{i=1}^{n}X_{i}$.
+		\end{lemma}
+	\end{framed}
+
+	\vspace{10pt}
+	
+		$\blacksquare$ \textbf{Linear Regression.}\par 
+	Now consider linear regression model 
+	\[	Y_{i} = X_{i}' \bm{\beta} + \epsilon_{i}	\]
+	with the mean independence (OLS2) $\mathbb{E}[\epsilon_{i}|X_{i}] = 0$ and other OLS assumptions.\par 
+	$\bullet$ \emph{The leave-one-out estimators}.\par 
+	Recall that we have 
+	\[	\hat{\bm{\beta}} = \left(\sum_{i=1}^{n}X_{i}X_{i}'\right)^{-1}\left(\sum_{i=1}^{n}X_{i}Y_{i}\right),	\]
+	therefore, the  leave-one-out estimators are 
+	\[		\hat{\bm{\beta}}_{(-i)} = \left(\sum_{j\ne i} X_{j}X_{j}'\right)^{-1}\left(\sum_{j\ne i} X_{j}Y_{j}\right)	\]
+	for $i = 1,2,3, \dots, n$.
+	We could rewrite $	\hat{\bm{\beta}}_{(-i)} $ into matrices forms as before, so
+	\[		\hat{\bm{\beta}}_{(-i)}  = \left(\bm{X}'\bm{X} - X_{i}X_{i}'\right)^{-1}\left(\bm{X}'\bm{Y}- X_{i}Y_{i}\right).	\]
+	
+	We introduce the \textbf{Out-of-sample Prediction Error} $\tilde{\epsilon_{i}}$, which is defined as 
+	\begin{definition}
+		\textbf{(Out-of-sample Prediction Error).} 
+		\[	\tilde{\epsilon_{i}} = Y_{i} - X_{i}'\bm{\hat{\beta}_{(-i)}}	\]
+		for $i = 1,2, \dots$. Let's mention explicitly that we used $\bm{\hat{\beta}_{(-i)}}$ here in the place of $\bm{\hat{\beta}}$. Notice also that the $\tilde{\epsilon_{i}}$'s are one-dimensional. 
+	\end{definition}
+
+	We will need the following lemma:
+	\begin{lemma}\label{jackknife, ols lem.}
+		The leave-one-out estimator and the prediction error equal
+		\begin{equation}\label{jackknife, ols lem. eq. 1}
+				\bm{\hat{\beta}_{(-i)}} = \bm{\hat{\beta}} - (\bm{X}'\bm{X})^{-1}X_{i}\tilde{\epsilon_{i}}
+		\end{equation}
+		and
+		\begin{equation}\label{jackknife, ols lem. eq. 2}
+		\tilde{\epsilon_{i}} = (1-h_{ii})^{-1}\hat{\epsilon}_{i}
+		\end{equation}
+		where $h_{ii} = X_{i}' (\bm{X}'\bm{X})X_{i}$ is called the $i$-th leverage. (It is one-dimensional)
+	\end{lemma}
+	\begin{proof}
+		We have 
+			\[		\hat{\bm{\beta}}_{(-i)}  = \left(\bm{X}'\bm{X} - X_{i}X_{i}'\right)^{-1}\left(\bm{X}'\bm{Y}- X_{i}Y_{i}\right).	\]
+			Pre-multiply the $k$-by-$k$ matrix  $(\bm{X}'\bm{X})^{-1}(\bm{X}'\bm{X} - X_{i}X_{i}') $ on both sides of the equation and get
+			\[	\begin{aligned}
+			(\bm{X}'\bm{X})^{-1}(\bm{X}'\bm{X} - X_{i}X_{i}') 	\hat{\bm{\beta}}_{(-i)}  = 	(\bm{X}'\bm{X})^{-1}\left(\bm{X}'\bm{Y}- X_{i}Y_{i}\right).
+			\end{aligned}	\]
+			Some arithmetic operations will give us 
+			\[	\bm{\hat{\beta}}_{(-i)} = \bm{\hat{\beta}} - (\bm{X}'\bm{X})^{-1}X_{i}\left(Y_{i} - X_{i}'\bm{\hat{\beta}_{(-i)}}\right) 	\] 
+			and the last term in the parenthesis is just $	\tilde{\epsilon_{i}} $ by definition. This shows equation (\ref{jackknife, ols lem. eq. 1}). \par 
+			For the second statement, substitute $	\hat{\bm{\beta}}_{(-i)} $ in equation (\ref{jackknife, ols lem. eq. 1}) into the expression $X_{i}' 	\hat{\bm{\beta}}_{(-i)} $ and the result should be evident.
+	\end{proof}
+
+	$\bullet$\emph{ The sample average of leave-one-out estimators} \par 
+	Now, we have 
+	\[	\begin{aligned}
+	\bar{\bm{\beta}} &= \frac{1}{n}\sum_{i=1}^{n}\hat{\bm{\beta}}_{(-i)} \\
+	&=  \frac{1}{n}\sum_{i=1}^{n}\left(\bm{\hat{\beta}} - (\bm{X}'\bm{X})^{-1}X_{i}\tilde{\epsilon_{i}}\right) \\
+	&= \bm{\hat{\beta}} - (\bm{X}'\bm{X})^{-1}\tilde{\bm{\mu}}
+	\end{aligned}	\]
+	where $\tilde{\bm{\mu}} := \frac{1}{n}\sum_{i=1}^{n}X_{i}\tilde{\epsilon_{i}}$. (Notice that it is a $k$-dimensional random vector depending on $X_{i}$).\par 
+	Therefore $ \left(\hat{\bm{\beta}}_{(-i)} - \bar{\bm{\beta}}\right) = (\bm{X}'\bm{X})^{-1}(\tilde{\bm{\mu}} - X_{i}\tilde{\epsilon_{i}})$ as you may verify.
+	\par 
+	$\bullet$ \emph{Tukey’s jackknife estimator for} $V_{\hat{\bm{\beta}}}$
+	\[	\begin{aligned}
+	V_{\hat{\bm{\beta}}}^{Jack} &= \frac{n-1}{n}\sum_{i=1}^{n} \left(\hat{\bm{\beta}}_{(-i)} - \bar{\bm{\beta}}\right) \left(\hat{\bm{\beta}}_{(-i)} - \bar{\bm{\beta}}\right)'  \\
+	&= \frac{n-1}{n}\sum_{i=1}^{n} (\bm{X}'\bm{X})^{-1}(\tilde{\bm{\mu}} - X_{i}\tilde{\epsilon_{i}}) (\tilde{\bm{\mu}}' - \tilde{\epsilon_{i}}'X_{i}')  (\bm{X}'\bm{X})^{-1} \\
+	&= \frac{n-1}{n}(\bm{X}'\bm{X})^{-1} \sum_{i=1}^{n} \left[(\tilde{\bm{\mu}} - X_{i}\tilde{\epsilon_{i}}) (\tilde{\bm{\mu}}' - \tilde{\epsilon_{i}}'X_{i}') \right] (\bm{X}'\bm{X})^{-1}\\
+	&=  \frac{n-1}{n}(\bm{X}'\bm{X})^{-1}  \left[ \sum_{i=1}^{n} X_{i}X_{i}' \tilde{\epsilon_{i}}^{2}  -n \tilde{\bm{\mu}} \tilde{\bm{\mu}}'  \right] (\bm{X}'\bm{X})^{-1} \\
+	&= 	\underbrace{ \frac{n-1}{n}(\bm{X}'\bm{X})^{-1}  \left( \sum_{i=1}^{n} X_{i}X_{i}' \tilde{\epsilon_{i}}^{2}    \right) (\bm{X}'\bm{X})^{-1}}_{(1)} -  \underbrace{(n-1)(\bm{X}'\bm{X})^{-1}   \tilde{\bm{\mu}} \tilde{\bm{\mu}}'  (\bm{X}'\bm{X})^{-1}}_{(2)}.
+	\end{aligned}	\]\par 
+	Note that $(1)$ is just $\frac{n-1}{n} \hat{V}_{\hat{\beta}}^{HC3}$(see this in the slides) and $(2)$ can be shown equal to $o_{p}(n^{-1})$, which can be ignore statistically. \par 
+	As we mentioned earlier, $\hat{V}_{\hat{\beta}}^{HC3}$ actually over-estimates the variance and is quite conservative, so a little down-weight by $\frac{n-1}{n}$ is probably good. But the the difference vanishes as $n$ grows.\par 
+	Jackknife has another advantage over Bootstrap in the sense that Jackknife is non-random (deterministic), which means that given the sample, we get the same standard error estimate each time. This is different from bootstrap. 
+	
+\subsubsection{The Bootstrap}
+	The bootstrap is also a powerful approach to inference and is due to the pioneering work of Efron (1979)\footnote{Efron, B. (1979). \textit{Bootstrap Methods: Another Look at the Jackknife.} The Annals of Statistics, 7(1), 1–26. http://www.jstor.org/stable/2958830}. We will just have a discussion on what it does. It's like a random version of Jackknife. Brieﬂy, the bootstrap distribution is obtained by estimation on independent samples created by i.i.d. sampling (sampling with replacement) from the original data set. \par 
+	Both Jackknife and bootstrap can be generalised to cope with clustered data. In such case, we leave-out/resample clusters rather than observations. For more details, consult MacKinnon, Nielsen, and Webb (2022)\footnote{James G. MacKinnon \& Morten {O}rregaard Nielsen \& Matthew D. Webb, 2022. "\textit{Cluster-Robust Inference: A Guide to Empirical Practice}," Papers 2205.03285, arXiv.org}.
+
+\section{Machine Learning}
+\subsection{Introduction}\hfil\par 
+	We now study Machine Learning (ML) methods for econometrics. This is a large and growing topic so our treatment is (very) selective. We focusing on Lasso and the concept of double/debiased machine learning. We will also talk about deep neural networks.\par 
+	There are plenty of materials to consult for further study. \href{https://www.stat.cmu.edu/~larry/}{Professor Larry Wasserman} has a master/Ph.D. level machine learning course and the lecture notes are available on his website\footnote{\href{https://www.stat.cmu.edu/~larry/=sml/}{\textit{Statistical Methods for Machine Learning} by Prof.  Larry Wasserman
+	}}. \href{https://faculty.fuqua.duke.edu/~abn5/belloni-index.html}{Prof. Alexandre Belloni} had a minicourse in IMPA on the topic of high dimensional estimation, which gives a great discussion on Lasso. For more advanced topics, \href{https://simons.berkeley.edu/}{The Simons Institute for the Theory of Computing} at UC-Berkeley includes more cutting-edge materials.\par 
+	There are three inter-related concepts in machine learning: “big data”, “high dimensionality” and “machine learning”. Big data is typically used to describe datasets which are unusually large and/or complex relative to traditional applications. The deﬁnition of “large” varies across discipline and time, but typically refers to datasets with millions of observations. High Dimensionality is typically used to describe datasets with an unusually large number of variables. Machine Learning is typically used to describe a set of algorithmic approaches to statistical learning. The methods are primarily focused on point prediction in settings with unknown structure. These days, the literature in machine learning has expanded to include inference.\par 
+	Machine learning methods generally allow for large sample sizes, large number of variables, and unknown structural form. It embraces a large and diverse set of tools for a variety of settings, including supervised learning (prediction rules for $Y$ given high-dimensional $X$), unsupervised learning (uncovering structure among high-dimensional $X$), and classiﬁcation (discrete choice analysis with high-dimensional predictors). We focus on supervised learning as it is a natural extension of linear regression.\par 
+	For econometrics, ML can be thought of as “nonparametric problem,” which basically means that doing analysis without assuming a specific function form. Conventional nonparametric analysis typically assumes that $X$ is low-dimensional. In contrast, a machine learning analysis may allow for hundreds or even thousands of regressors in X, and does not require prior information about which regressors are most relevant. So in conclusion and for our purpose, machine learning can be thought as the set of modern nonparametric methods that can potentially handle high-dimensionality.\par 
+	See the lecture slides for an illustration of the ``bias-variance trade-off'' in Machine Literature. The illustration shows that least squares can fail when dimension is large. The Lasso could potentially help us.
+	
+\subsection{The Lasso}\hfill\par 
+	\textit{The Least Absolute Shrinkage and Selection Operator}, or simply \textit{the Lasso} (Tibishirani, 1996)\footnote{\href{https://www.jstor.org/stable/2346178?seq=1}{Tibshirani, R. (1996). Regression Shrinkage and Selection via the Lasso. \textit{Journal of the Royal Statistical Society. Series B (Methodological)}, 58(1), 267–288. http://www.jstor.org/stable/2346178}} is one of the most popular estimator in high-dimensional statistics and econometrics. It helps us to deal with the situation when dimensionality is much larger than the sample size. But to this, we need to put more assumptions (we always need more assumptions to tackle the curse of dimensionality). One important assumption is the \textit{Sparsity} assumption\footnote{$\|\bm{\beta_{0}}\|_{0} $ is the $\ell_{0}$ ``norm'' that counts the total number of nonzero elements of $\bm{\beta_{0}}$. }:
+	\[	\|\bm{\beta_{0}}\|_{0} \leq s \ll n,	\]
+	which says, in plain English, that the coordinates of $\bm{\beta_{0}}$ (the true $\bm{\beta}$) are mostly zero. \par 
+	The estimate is defined as \footnote{The $L^{1}$-norm is defined by $\|\bm{\beta}\|_{1} := \sum_{j=1}^{p} |\beta_{j}|$ and  $\|\bm{t}\|_{n, 2}^{2}=\frac{1}{n} \sum_{i=1}^{n} t_{i}^{2}$ denotes the empirical norm on $ \mathbb{R}^{n}$.}
+	\[	\widehat{\bm{\beta}}^{\lambda} = \operatorname{argmin}_{\bm{\beta} \in \mathbb{R}^{p}} \left\{\|y-\mathbf{X} \bm{\beta}\|_{n, 2}^{2}+\lambda\|\bm{\beta}\|_{1}\right\}	\]
+	where $\lambda > 0$ is a penalty level and is a tuning parameter that the user need to decide before estimation.\par 
+	The level of $\lambda$ controls the sparsity of $\widehat{\bm{\beta}}^{\lambda}$. It is not clear from the definition but $\widehat{\bm{\beta}}^{\lambda}$ is sparse.\par 
+	Note that 
+	\begin{itemize}
+		\item If $\lambda \approx 0$, the Lasso is essentially OLS (larger variance, smaller bias);
+		\item If $\lambda \approx +\infty$, the Lasso is essentially a zero vector (larger bias, smaller variance).
+	\end{itemize}
+
+	We are trying to solve least square problem but discourage large $\bm{\beta}$. Again we have the bias-variance trade-off here. Thus choosing an appropriate level of penalty is important for its performance. Lasso is in general quite easy to solve as a convex problem. Lasso can be generalized to models other than least squares as long as we have some likelihood structure. There are also some theory\footnote{A lot of them are developed by \href{https://stat.ethz.ch/~vsara/}{Sara van de Geer}.} and practice\footnote{ \href{https://www.stata.com/manuals/lasso.pdf}{The Lasso Manual of Stata} is a good place to start.} stuffs about Lasso, which we do not have time to discuss. 
+	
+\end{document}
