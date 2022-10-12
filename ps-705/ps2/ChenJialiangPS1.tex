@@ -1,0 +1,253 @@
+\documentclass[11pt,a4paper]{amsart}
+\usepackage{amssymb,latexsym}
+\usepackage{graphicx}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{axiom}{Axiom}
+\newtheorem{proposition}{Proposition}
+\usepackage{geometry}
+\geometry{a4paper,left=2cm,right=2cm,top=1cm,bottom=1cm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\usepackage{ulem} % various underlines
+\usepackage{hyperref} % to insert URL 
+\usepackage{graphicx} % to insert illustration
+\usepackage[mathscr]{eucal} % to express a collection of sets
+\usepackage{bm} % bold font in equation environment
+\usepackage{color} % color some text
+\usepackage{framed} % to add a frame 
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{nicematrix}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+		\node[shape=circle,draw,inner sep=1pt] (char) {#1};}} % circled numbers
+\usepackage{float}%do not auto repositioning
+% $\uppercase\expandafter{\romannumeral1}$ Roman numeral
+%	\begin{figure}[hbt]
+	%{\centering \includegraphics[scale=0.78]{ring_algebra_semi}}
+	%\caption{ring \& algebra \& semi-}\label{F:ring_algebra_semi}
+	%\end{figure}
+	
+\begin{document}
+\title{Econ 705 : Problem Set 1}
+\author{Jialiang Chen} 
+\date{\today}
+\maketitle
+
+\textbf{Problem $4$}\hfil
+
+The summary statistics show that the mean, standard variation and minimum(and maximum) values are very similar between control and experiment group. This shows some (strong) evidence of statistical balance, which should be expected if our random assignment is correctly implemented.
+
+\vspace{10pt}
+
+\textbf{Problem $5$}\hfil
+
+Under the null hypotheses of 
+\[	\mathbb{E}[X \mid R = 0] = \mathbb{E}[X \mid R = 1], 	\]
+we conduct a t-test for each $X \in \{age, bfeduca, bfyrearn\}$. 
+
+Statistically, the results show that there is no sufficient evidence to reject the equal mean hypothesis for age and last year earning, with $p-$values $0.5835$ and $0.6450$, respectively. However, there is a strong evidence for rejecting the null of equal mean education with a h $p-$values $0.0145$.  
+
+However, as long as we know that the random assignment is correctly done, the significance levels do not have much meaning. \emph{We should focus on the difference in magnitudes.} For age and education level, the difference in means of two groups are negligibly small. For last year earning, the mean difference is $42.297$, which can also be considered as relatively small. We should think the random assignment is fine.
+
+\vspace{10pt}
+
+\textbf{Problem $6$}\hfil
+
+The standardized difference is calculated as 
+\[	\operatorname{SDIFF} = 100 \frac{\left|\bar{X}_{R = 1} - \bar{X}_{R=0}\right|}{\sqrt{\frac{\widehat{\operatorname{Var}}(X)_{R=1}  - \widehat{\operatorname{Var}}(X)_{R=0} }{2}}} \approx 6.83. \]
+It is small than the cutoff of $20$ set by Rosenbaum and Rubin. We should think that there is not too much evidence against the balance, so the random assignment should have been correctly implemented.
+
+\vspace{10pt}
+
+\textbf{Problem $7$}\hfil
+
+Statistically, there is a strong evidence of different means of self-reported earning in the $18$ months after the random assignment. Specifically, under the null of $\mathbb{E}[esum18i \mid R = 1] - \mathbb{E}[esum18i \mid R]  = 0]$, the $p$-value is less than $0.001$. So the estimated impact of random assignment is statistically different from $0$.
+
+Substantively, the estimated magnitude of the impact of random assignment is $\mathbb{E}[esum18i \mid R = 1] - \mathbb{E}[esum18i \mid R]  = 0] = 792.8$, which is substantively different from $0$. 
+
+\vspace{10pt}
+ 
+\textbf{Problem $8$}\hfil
+
+We run the single variable regression
+\[	esum18i = \beta_{0}  + \beta_{treat} treat.	\] 
+The estimated impact of random assignment is $792.8$ with a $p-$value of $0.001$. Therefore, the impact is both substantively and statistically different from $0$. It is the same as the mean difference estimated in the preceding problem, as we should expect given that the random assignment is correctly implemented.
+
+\vspace{10pt}
+
+\textbf{Problem $9$}\hfil
+
+This time we run the regression
+\[ \begin{aligned}
+		esum18i = \beta_{0}  + \beta_{treat} treat + \beta_{1}sex + \beta_{2}race + \beta_{3}age + \beta_{4} totch18 + \beta_{5}bfeduca \\
+		+ \beta_{6} + \beta_{7} bfyrearn + \beta_{8}i site_num + \beta_{9}child_miss + \beta_{10}ed_miss + \beta_{11} earn_miss.
+\end{aligned}	\] 
+
+The estimated impact of random assignment is $694.6$ with a $p-$value of $0.001$. Therefore, the impact is still both substantively and statistically different from $0$. Loosely speaking, this means that being in the treatment will increase the earning in the next $18$ months by $694.6$. 
+
+Compare to the result in Problem $8$, the estimated estimated coefficient is smaller here, mainly because we take into account the observations with missing values here. Since missing values are indistinguishable with $0$ in the dataset,  those observations with missing child, education or earnings  will be included in the previous regression, and hence distort the effect of being in the treatment group.
+
+On the other hand, the standard error of treatment decreased from $228.58$ to $215.83$. This is because by including the variables that are correlated with $esum18i$ into the regression, they consume some of the variance (that was previously all in the error term.)  So we get better estimate in terms of precision.
+
+This estimate is unbiased if the treatment is randomly assigned. This is because random assignment makes sure that the assignment $treat$ is uncorrelated with any other variable.
+
+\vspace{10pt}
+ 
+\textbf{Problem $10$}\hfil
+
+From the table (see log file), we know that $65.89$ percent of the treatment group actually participates in JTPA. And $2.66$ percent of the control group participated in JTPA anyway.
+
+\vspace{10pt}
+
+\textbf{Problem $11$}\hfil
+
+We run the Two Stage Least Square regression
+\[ \begin{aligned}
+	esum18i = \beta_{0}  + \beta_{enroll} \widehat{enroll} + \beta_{1}sex + \beta_{2}race + \beta_{3}age + \beta_{4} totch18 + \beta_{5}bfeduca \\
+	+ \beta_{6} + \beta_{7} bfyrearn + \beta_{8}i site_num + \beta_{9}child_miss + \beta_{10}ed_miss + \beta_{11} earn_miss.
+\end{aligned}	\] 
+Our estimate of the impact of enrolling JTPA is $\widehat{ \beta}_{enroll} = 1100.1$, and it is statistically different from $0$.  
+
+In a common effect world, this is just the common effect of enrollment for all units.
+
+In a heterogeneous effect world, if we assume monotonicity and $\mathbb{P}(\text{Complier}) > 0$ (i.e., these exists some compliers), then this is the enrollment effect of the compliers.
+ 
+ \vspace{10pt}
+ 
+ \textbf{Problem $12$}\hfil
+ 
+ Since we know that, by the law of iterated expectation,
+ \[		\mathbb{E}\left[bfeduca\right] = \mathbb{E}\left[bfeduca | AT\right] \mathbb{P}(AT) + \mathbb{E}\left[bfeduca | C\right] \mathbb{P}(C) + \mathbb{E}\left[bfeduca | NT\right] \mathbb{P}(NT),	\]
+ where  $AT$ is the set of always takers, $C$ is the set of compliers and $NT$ is the set of never takers.
+ 
+ All the terms in the above equation can be easily estimated by our data, and the only unknown is $\mathbb{E}\left[bfeduca | C\right]$, we can then solve the equation and get $\mathbb{E}\left[bfeduca | C\right] = 11.41$. This is our estimate of the complier mean of the education.
+  
+ \vspace{10pt}
+ 
+ \textbf{Problem $14$}\hfil
+ 
+ First we run the regression 
+ \[	\begin{aligned}
+ 	esum18i = \beta_{0}  + \beta_{treat} treat + \beta_{1}sex + \beta_{2}race + \beta_{3}age + \beta_{4} totch18 + \beta_{5}bfeduca \\
+ 	+ \beta_{6} + \beta_{7} bfyrearn + \beta_{8}i site_num + \beta_{9}child_miss + \beta_{10}ed_miss + \beta_{11} earn_miss.
+ \end{aligned}	\]
+separately for older women (age more than $31$) and younger women. 
+
+The result shows that the treatment effect for young women is $671.83$, and $705.94$ for older women. Both of them are statistically different from $0$ under a $.05$ significance level. This shows that the treatment has a $34$ units higher effect for older women than young women.
+
+Now, we run the single regression
+ \[	\begin{aligned}
+	esum18i = \beta_{0}  +  \beta_{treat} treat * agele31 + \beta_{age}agele31 +\beta_{1}sex + \beta_{2}race + \beta_{3}age + \beta_{4} totch18 + \beta_{5}bfeduca \\
+	+ \beta_{6} + \beta_{7} bfyrearn + \beta_{8}i site_num + \beta_{9}child_miss + \beta_{10}ed_miss + \beta_{11} earn_miss.
+\end{aligned}	\]
+
+The result shows that the experimental effect are $715.86$  for older women and $671.71$ for younger women, with a difference of magnitude $44.151$. Both of them are statistically different from $0$ under a $.05$ significance level.
+
+Both approach show that the experimental effect is higher for older women than young women. I prefer the first approach as it allows us get different coefficients on other variables, which might be instructive.
+
+\vspace{10pt}
+
+\textbf{Problem $15$}\hfil
+
+The standard deviation of earnings in $18$ months after random assignment in the treatment group is $8239.86$ and $7738.12$ in the control group. A statistical test shows strong evidence of different standard deviation in two groups, with a $p-$value less than $0.002$. 
+
+This shows that the rank preservation is unlikely to hold, and hence there is a great chance that we are not in a common effect world. In other worlds, we have heterogeneous experimental effects here.
+  
+\vspace{10pt}
+
+\textbf{Problem $16$}\hfil
+
+The $75^{th}$ percentile treatment effect is estimated to be $969.5$, which is greater than the average treatment effect ($694.606$) by $274.9$. 
+  
+\vspace{10pt}
+
+\textbf{Problem $17$}\hfil
+
+We could interpret the $75^{th}$ percentile treatment effect as \par 
+\begin{enumerate}
+	\item The effect of experiment \emph{at} the  $75^{th}$ percentile: This means the effect of the experiment for the units at the $75^{th}$ percentile. This requires a strong assumption, namely, the rank preservation;
+	\item The effect of experiment \emph{on} the  $75^{th}$ percentile: This is just the difference of the $75^{th}$ quantile of the cumulative distribution function $F(Y_{1} )$ and $F(Y_{0})$. For this interpretation, no assumption about rank preservation is needed.
+\end{enumerate}
+
+\vspace{10pt}
+
+\textbf{Problem $18$}\hfil
+\begin{table}[H] 
+	\caption{The marginal distribution of $Y_{0}$ and $Y_{1}$}\label{tb:mdist}
+	\begin{center}
+		\begin{NiceTabular}{*{5}{c}}[hvlines]
+			\hline 
+		      &	\Block{1-*}{ treat = 1}\\
+			\hline
+			\Block{4-1}{treat = 0 } &  & $employ = 0$ & $employ = 1$  & Probability \\ 		
+			 & $employ = 0$ &	 &  &  0. 23 \\
+			&$employ = 1$ &	 &   &  0.77  \\
+			& Probability	&  0.20&  0. 80  & 1 \\
+		\end{NiceTabular}
+	\end{center}
+\end{table}
+
+\vspace{10pt}
+
+\textbf{Problem $19$}\hfil
+
+For the joint distribution of $(Y_{0}, Y_{1})$, by the Frech\'et-H\" offding bound, we have 
+\[ \begin{aligned}
+		 \max \{ \mathbb{P}((0,0)) + \mathbb{P}((0,1)) +  \mathbb{P}((0,0)) + &\mathbb{P}((1,0)) - 1 , 0 \} \\
+		& \leq  \mathbb{P}((0, 0)) \leq  \\
+		& \min \{\mathbb{P}((0,0)) + \mathbb{P}((0,1)), \mathbb{P}((0,0)) + \mathbb{P}((1,0))\}.
+\end{aligned}	\]
+
+Substitute values in Table(\ref{tb:mdist}), we get 
+\[	 \max\{0.23 + 0.20 -1 , 0\} \leq  \mathbb{P}((0, 0)) \leq \min\{0.23, 0.20\},	\]
+that is, $0 \leq  \mathbb{P}((0, 0)) \leq 0.20$. 
+
+This  Frech\'et-H\" offding bound for $(Y_{0}, Y_{1}) = (0, 0)$ means that if an individual choose to participate the JTPA program, then the maximum of the probability of being assigned to the control group and being unemployed is at most $0.2$. This is a narrow enough bound in my opinion since the upper bound is only one fifth.
+
+\vspace{10pt}
+
+\textbf{Problem $20$}\hfil
+
+The joint distribution of $(Y_{0}, Y_{1})$ corresponds to the lower Frech\'et-H\" offding bound is 
+\begin{table}[H] 
+	\caption{The joint distribution of $(Y_{0}, Y(1))$ for lower F-H bound}\label{tb:jtlb}
+	\begin{center}
+		\begin{NiceTabular}{*{5}{c}}[hvlines]
+			\hline 
+			&	\Block{1-*}{ treat = 1}\\
+			\hline
+			\Block{4-1}{treat = 0 } &  & $employ = 0$ & $employ = 1$  & Probability \\ 		
+			 & $employ = 0$ &	0  &0.23  &  0.23 \\
+			&$employ = 1$ &0.20 & 0.57  &  0.77  \\
+			& Probability	&  0.20&  0.80  & 1 \\
+		\end{NiceTabular}
+	\end{center}
+\end{table}
+
+The joint distribution of $(Y_{0}, Y_{1})$ corresponds to the upper Frech\'et-H\" offding bound is 
+\begin{table}[H] 
+	\caption{The joint distribution of $(Y_{0}, Y(1))$ for upper F-H bound}\label{tb:jtlb}
+	\begin{center}
+		\begin{NiceTabular}{*{5}{c}}[hvlines]
+			\hline 
+			&	\Block{1-*}{ treat = 1}\\
+			\hline
+			\Block{4-1}{treat = 0 } &  & $employ = 0$ & $employ = 1$  & Probability \\ 		
+			& $employ = 0$ & 0.20 & 0.03 &  0. 23 \\
+			&$employ = 1$ & 0	 &   0.77 &  0.77  \\
+			& Probability	&  0.20&  0. 80  & 1 \\
+		\end{NiceTabular}
+	\end{center}
+\end{table}
+
+
+ 
+
+
+
+
+
+\end{document}
