@@ -1,0 +1,593 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  U:\private\old-d\courses - wi\econ 705\2022 fall\\PROBLEM SETS\Economics 705 Fall 2022 Problem Set 2.log
+  log type:  text
+ opened on:   5 Nov 2022, 09:48:07
+
+. *
+. * ECONOMICS 705 FALL 2022 PROBLEM SET 2.DO
+. * By Jeffrey Smith - Version of November 5, 2022
+. * 
+. * This program performs the analyses required for Problem Set 2 in 
+. * Economics 705 (First Half) Fall 2022.
+. *
+. * READ IN THE DATA AND SUMMARIZE IT 
+. *
+. use "`dir'\PROBLEM SETS\Economics 705 Fall 2022 NJS Data.dta", clear
+
+. sum
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       bifid |     20,601    131808.6    20795.56     100110     169992
+         sex |     20,601    .4568225    .4981443          0          1
+         age |     20,601    29.30702    10.52068         16         82
+        race |     20,601    1.646037    .8114741          1          4
+     esum18i |     14,192    9513.183    9546.872          0      93951
+-------------+---------------------------------------------------------
+    bfyrearn |     20,601    2325.349     3834.53          0      64436
+     ra_stat |     20,601     1.32178    .4671706          1          2
+     bfeduca |     20,601    11.23572     2.29488          0         18
+     totch18 |     20,601     1.06189     1.41126          0         20
+    site_num |     20,601     8.08218    4.694295          1         16
+-------------+---------------------------------------------------------
+      enroll |     20,601    .4278918    .4947851          0          1
+   earn_miss |     20,601    .1727101    .3780056          0          1
+  child_miss |     20,601    .0942673    .2922073          0          1
+     ed_miss |     20,601    .0168438    .1286893          0          1
+
+. *
+. * PROBLEM 1
+. * Keep only adult women.
+. *;
+. keep if sex == 0
+(9,411 observations deleted)
+
+. keep if age >= 22
+(3,132 observations deleted)
+
+. *
+. * PROBLEM 2
+. * Generate 1/0 treatment indicator.
+. *
+. gen treat = 0
+
+. replace treat = 1 if ra_stat == 1
+(5,453 real changes made)
+
+. tab ra_stat treat
+
+           |         treat
+   ra_stat |         0          1 |     Total
+-----------+----------------------+----------
+   Trtment |         0      5,453 |     5,453 
+   Control |     2,605          0 |     2,605 
+-----------+----------------------+----------
+     Total |     2,605      5,453 |     8,058 
+
+. *
+. * PROBLEM 3
+. * Drop if missing value of earnings in the 18 months after random 
+. * assignment and rescale the earnings variables.
+. *
+. drop if esum18i == .
+(2,333 observations deleted)
+
+. *
+. replace bfyrearn = bfyrearn / 1000.0
+(2,947 real changes made)
+
+. replace esum18i = esum18i / 1000.0
+(4,498 real changes made)
+
+. *
+. * PROBLEM 4
+. * Estimate linear, quadratic and cubic models.
+. *
+. reg esum18i bfyrearn
+
+      Source |       SS           df       MS      Number of obs   =     5,725
+-------------+----------------------------------   F(1, 5723)      =    447.06
+       Model |  27140.0572         1  27140.0572   Prob > F        =    0.0000
+    Residual |  347434.975     5,723  60.7085401   R-squared       =    0.0725
+-------------+----------------------------------   Adj R-squared   =    0.0723
+       Total |  374575.032     5,724  65.4393837   Root MSE        =    7.7916
+
+------------------------------------------------------------------------------
+     esum18i | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    bfyrearn |   .6709605   .0317334    21.14   0.000      .608751      .73317
+       _cons |   6.701794   .1200962    55.80   0.000      6.46636    6.937228
+------------------------------------------------------------------------------
+
+. predict esum18ihat1
+(option xb assumed; fitted values)
+
+. margins, at(bfyrearn = 50)
+
+Adjusted predictions                                     Number of obs = 5,725
+Model VCE: OLS
+
+Expression: Linear prediction, predict()
+At: bfyrearn = 50
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |     Margin   std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       _cons |   40.24982   1.528345    26.34   0.000     37.25369    43.24595
+------------------------------------------------------------------------------
+
+. reg esum18i bfyrearn c.bfyrearn#c.bfyrearn
+
+      Source |       SS           df       MS      Number of obs   =     5,725
+-------------+----------------------------------   F(2, 5722)      =    246.19
+       Model |  29678.9819         2  14839.4909   Prob > F        =    0.0000
+    Residual |   344896.05     5,722  60.2754369   R-squared       =    0.0792
+-------------+----------------------------------   Adj R-squared   =    0.0789
+       Total |  374575.032     5,724  65.4393837   Root MSE        =    7.7637
+
+---------------------------------------------------------------------------------------
+              esum18i | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+----------------------+----------------------------------------------------------------
+             bfyrearn |   .9491292   .0532618    17.82   0.000      .844716    1.053542
+                      |
+c.bfyrearn#c.bfyrearn |  -.0217653   .0033536    -6.49   0.000    -.0283396    -.015191
+                      |
+                _cons |   6.471825   .1248028    51.86   0.000     6.227164    6.716485
+---------------------------------------------------------------------------------------
+
+. predict esum18ihat2
+(option xb assumed; fitted values)
+
+. margins, at(bfyrearn = 50)
+
+Adjusted predictions                                     Number of obs = 5,725
+Model VCE: OLS
+
+Expression: Linear prediction, predict()
+At: bfyrearn = 50
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |     Margin   std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       _cons |  -.4850477   6.458525    -0.08   0.940     -13.1462    12.17611
+------------------------------------------------------------------------------
+
+. reg esum18i bfyrearn c.bfyrearn#c.bfyrearn c.bfyrearn#c.bfyrearn#c.bfyrearn
+
+      Source |       SS           df       MS      Number of obs   =     5,725
+-------------+----------------------------------   F(3, 5721)      =    167.59
+       Model |  30258.3188         3  10086.1063   Prob > F        =    0.0000
+    Residual |  344316.713     5,721  60.1847078   R-squared       =    0.0808
+-------------+----------------------------------   Adj R-squared   =    0.0803
+       Total |  374575.032     5,724  65.4393837   Root MSE        =    7.7579
+
+--------------------------------------------------------------------------------------------------
+                         esum18i | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                        bfyrearn |   1.172394    .089504    13.10   0.000     .9969327    1.347856
+                                 |
+           c.bfyrearn#c.bfyrearn |  -.0530704   .0106319    -4.99   0.000     -.073913   -.0322278
+                                 |
+c.bfyrearn#c.bfyrearn#c.bfyrearn |   .0007317   .0002358     3.10   0.002     .0002694     .001194
+                                 |
+                           _cons |   6.366532   .1292441    49.26   0.000     6.113164    6.619899
+--------------------------------------------------------------------------------------------------
+
+. predict esum18ihat3
+(option xb assumed; fitted values)
+
+. margins, at(bfyrearn = 50)
+
+Adjusted predictions                                     Number of obs = 5,725
+Model VCE: OLS
+
+Expression: Linear prediction, predict()
+At: bfyrearn = 50
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |     Margin   std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       _cons |   23.76928   10.13719     2.34   0.019     3.896535    43.64202
+------------------------------------------------------------------------------
+
+. *
+. * PROBLEM 5
+. * Estimate a model with indicators for categories of the independent
+. * variable.
+. *
+. * Generate indicators for categories.
+. *
+. gen bfyrcatcat = .
+(5,725 missing values generated)
+
+. replace bfyrcat = 1 if bfyrearn == 0.0 
+(2,778 real changes made)
+
+. replace bfyrcat = 2 if bfyrearn > 0.0 & bfyrearn <= 1.0
+(772 real changes made)
+
+. replace bfyrcat = 3 if bfyrearn > 1.0 & bfyrearn <= 3.0
+(827 real changes made)
+
+. replace bfyrcat = 4 if bfyrearn > 3.0 & bfyrearn <= 5.6
+(612 real changes made)
+
+. replace bfyrcat = 5 if bfyrearn > 5.6 & bfyrearn != .
+(736 real changes made)
+
+. tab bfyrcat, missing
+
+ bfyrcatcat |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |      2,778       48.52       48.52
+          2 |        772       13.48       62.01
+          3 |        827       14.45       76.45
+          4 |        612       10.69       87.14
+          5 |        736       12.86      100.00
+------------+-----------------------------------
+      Total |      5,725      100.00
+
+. *
+. * Estimate the conditional mean function using the indicators
+. *;
+. regress esum18i i.bfyrcat
+
+      Source |       SS           df       MS      Number of obs   =     5,725
+-------------+----------------------------------   F(4, 5720)      =    124.04
+       Model |  29898.2862         4  7474.57155   Prob > F        =    0.0000
+    Residual |  344676.746     5,720  60.2581724   R-squared       =    0.0798
+-------------+----------------------------------   Adj R-squared   =    0.0792
+       Total |  374575.032     5,724  65.4393837   Root MSE        =    7.7626
+
+------------------------------------------------------------------------------
+     esum18i | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  bfyrcatcat |
+          2  |   1.490024   .3158256     4.72   0.000     .8708862    2.109162
+          3  |   3.391155   .3074976    11.03   0.000     2.788343    3.993966
+          4  |   4.753318   .3466299    13.71   0.000     4.073792    5.432844
+          5  |   6.095881   .3218132    18.94   0.000     5.465005    6.726757
+             |
+       _cons |   6.025831   .1472793    40.91   0.000     5.737108    6.314554
+------------------------------------------------------------------------------
+
+. predict esum18ihat4
+(option xb assumed; fitted values)
+
+. *
+. * PROBLEM 8
+. * Graph the data and the estimated regression line from the model
+. * with category indicators in Problem 5.
+. *
+. sort bfyrearn
+
+. twoway (scatter esum18i bfyrearn) (line esum18ihat4 bfyrearn)
+
+. graph export "`dir'\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 8.emf", replace
+file U:\private\old-d\courses - wi\econ 705\2022 fall\\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 8.emf saved as Enhanced Metafile format
+
+. *
+. * PROBLEM 11
+. * Calculate mean squared prediction errors for observations with earnings
+. * in the year prior to random assignment equal to zero for four models.
+. *
+. gen perr1 = (esum18i - esum18ihat1) * (esum18i - esum18ihat1) 
+
+. gen perr2 = (esum18i - esum18ihat2) * (esum18i - esum18ihat2) 
+
+. gen perr3 = (esum18i - esum18ihat3) * (esum18i - esum18ihat3) 
+
+. gen perr4 = (esum18i - esum18ihat4) * (esum18i - esum18ihat4) 
+
+. sum perr1 perr2 perr3 perr4 if bfyrearn == 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       perr1 |      2,778     54.2822    123.6315   .0000177   2602.755
+       perr2 |      2,778    54.02418    125.7999   .0000268   2626.273
+       perr3 |      2,778    53.94135    126.8103   2.83e-07   2637.076
+       perr4 |      2,778    53.82527    130.1517   .0000514   2672.184
+
+. *
+. * PROBLEM 12
+. * Compare mean squared prediction errors for observations with high
+. * values of earnings in the year prior to random assignment. 
+. *
+. sum perr1 perr2 perr3 perr4 if bfyrearn >= 10.0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       perr1 |        184    117.0505    162.0424   .0172452   1014.145
+       perr2 |        184    110.5184    156.7965   .0045374   1030.527
+       perr3 |        184    110.8994    165.3966   .0476981    1160.36
+       perr4 |        184    117.0289    188.7639   .0022764   1331.103
+
+. *
+. * PROBLEM 13
+. * Estimate a nonparametric kernel regression with a bandwidth chosen by cross-validation
+. *
+. npregress kernel esum18i bfyrearn, estimator(constant) noderivative reps(50) seed(54321)
+(running npregress on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+
+Bandwidth
+-------------------------
+             |      Mean 
+-------------+-----------
+    bfyrearn |  .4750472 
+-------------------------
+
+Local-constant regression                  Number of obs      =          5,725
+Kernel   : epanechnikov                    E(Kernel obs)      =          2,720
+Bandwidth: cross-validation                R-squared          =         0.0881
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                          Percentile
+     esum18i |   estimate   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     esum18i |   7.954578   .1096498    72.55   0.000     7.742762    8.153751
+------------------------------------------------------------------------------
+Note: Effect estimates are averages of derivatives.
+
+. *
+. * PROBLEM 15
+. * Obtain predicted values of the conditional mean from the non-parametric regression 
+. * estimated in Problem 13.
+. *
+. margins, at(bfyrearn = (0(2)10)) vce(bootstrap, seed(10101) reps(50))
+(running margins on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+
+Adjusted predictions                                     Number of obs = 5,725
+                                                         Replications  =    50
+
+Expression: Mean function, predict()
+1._at: bfyrearn =  0
+2._at: bfyrearn =  2
+3._at: bfyrearn =  4
+4._at: bfyrearn =  6
+5._at: bfyrearn =  8
+6._at: bfyrearn = 10
+
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                          Percentile
+             |     margin   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         _at |
+          1  |   6.226102   .1520584    40.95   0.000     5.879914     6.50025
+          2  |   9.168321   .3061358    29.95   0.000     8.436637    9.830256
+          3  |   10.43838   .3134746    33.30   0.000     9.902132    11.06679
+          4  |   11.16638   .4798397    23.27   0.000     10.05994    11.92966
+          5  |   11.36416   .4983099    22.81   0.000     10.08475    12.45979
+          6  |   12.54298   .7998532    15.68   0.000     11.02765    13.86424
+------------------------------------------------------------------------------
+
+. * margins, at(bfyrearn =(50)) vce(bootstrap, seed(10101) reps(5))
+. *
+. * PROBLEM 16
+. * Graph the predicted values obtained in Problem 15 and save the graph.
+. *
+. marginsplot, legend(off) scale(1.1) addplot(scatter esum18i bfyrearn if bfyrearn <= 10, msize(tiny))
+
+Variables that uniquely identify margins: bfyrearn
+
+. graph export "`dir'\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 16.emf", replace
+file U:\private\old-d\courses - wi\econ 705\2022 fall\\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 16.emf saved as Enhanced Metafile format
+
+. 
+. *
+. * PROBLEM 17
+. * Obtain contrasts (i.e. crude estimates of the slope) based on the predicted
+. * values from Problem 16.
+. *
+. margins, at(bfyrearn = (0(2)10)) contrast(atcontrast(ar)) vce(bootstrap, seed(10101) reps(50))
+(running margins on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+Contrasts of predictive margins                  Number of obs = 5,725
+                                                 Replications  =    50
+
+Expression: Mean function, predict()
+1._at: bfyrearn =  0
+2._at: bfyrearn =  2
+3._at: bfyrearn =  4
+4._at: bfyrearn =  6
+5._at: bfyrearn =  8
+6._at: bfyrearn = 10
+
+------------------------------------------------
+             |         df        chi2     P>chi2
+-------------+----------------------------------
+         _at |
+   (2 vs 1)  |          1       71.88     0.0000
+   (3 vs 2)  |          1        7.46     0.0063
+   (4 vs 3)  |          1        1.31     0.2523
+   (5 vs 4)  |          1        0.07     0.7957
+   (6 vs 5)  |          1        1.79     0.1810
+      Joint  |          5      439.67     0.0000
+------------------------------------------------
+
+--------------------------------------------------------------
+             |   Observed   Bootstrap          Percentile
+             |   contrast   std. err.     [95% conf. interval]
+-------------+------------------------------------------------
+         _at |
+   (2 vs 1)  |   2.942219   .3470424       2.22891    3.788524
+   (3 vs 2)  |   1.270059   .4649426       .530026    2.153822
+   (4 vs 3)  |   .7280009   .6359779     -.3950346    1.841835
+   (5 vs 4)  |   .1977816   .7640461     -1.352088    1.456376
+   (6 vs 5)  |   1.178817   .8812054     -.3034467    2.505586
+--------------------------------------------------------------
+
+. *
+. * PROBLEM 18
+. * Graph the contrasts obtained in Problem 17 and save the graph.
+. *
+. marginsplot, legend(off)
+
+Variables that uniquely identify margins: bfyrearn
+
+. graph export "`dir'\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 18.emf", replace
+file U:\private\old-d\courses - wi\econ 705\2022 fall\\PROBLEM SETS\GRAPHS\Problem Set 2 Problem 18.emf saved as Enhanced Metafile format
+
+. *
+. * PROBLEM 19
+. *
+. npregress kernel esum18i bfyrearn, estimator(constant) noderivative meanbwidth(40, copy) reps(50) seed(54321)
+(running npregress on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+
+Bandwidth
+-------------------------
+             |      Mean 
+-------------+-----------
+    bfyrearn |        40 
+-------------------------
+
+Local-constant regression                  Number of obs      =          5,725
+Kernel   : epanechnikov                    E(Kernel obs)      =          5,725
+Bandwidth: cross-validation                R-squared          =         0.0389
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                          Percentile
+     esum18i |   estimate   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     esum18i |   8.003138   .1116701    71.67   0.000     7.797255    8.219094
+------------------------------------------------------------------------------
+Note: Effect estimates are averages of derivatives.
+Warning: Convergence not achieved.
+
+. margins, at(bfyrearn = (0(2)10)) vce(bootstrap, seed(10101) reps(50))
+(running margins on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+
+Adjusted predictions                                     Number of obs = 5,725
+                                                         Replications  =    50
+
+Expression: Mean function, predict()
+1._at: bfyrearn =  0
+2._at: bfyrearn =  2
+3._at: bfyrearn =  4
+4._at: bfyrearn =  6
+5._at: bfyrearn =  8
+6._at: bfyrearn = 10
+
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                          Percentile
+             |     margin   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         _at |
+          1  |   7.999674   .1105516    72.36   0.000     7.741718    8.170997
+          2  |   8.003216   .1105377    72.40   0.000     7.745341    8.174511
+          3  |   8.006752   .1105238    72.44   0.000      7.74896     8.17802
+          4  |   8.010294   .1105101    72.48   0.000     7.752584    8.181536
+          5  |   8.013853   .1104966    72.53   0.000     7.756225    8.185067
+          6  |   8.017438   .1104833    72.57   0.000     7.759894    8.188627
+------------------------------------------------------------------------------
+
+. margins, at(bfyrearn = (0(2)10)) contrast(atcontrast(ar)) vce(bootstrap, seed(10101) reps(50))
+(running margins on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+Contrasts of predictive margins                  Number of obs = 5,725
+                                                 Replications  =    50
+
+Expression: Mean function, predict()
+1._at: bfyrearn =  0
+2._at: bfyrearn =  2
+3._at: bfyrearn =  4
+4._at: bfyrearn =  6
+5._at: bfyrearn =  8
+6._at: bfyrearn = 10
+
+------------------------------------------------
+             |         df        chi2     P>chi2
+-------------+----------------------------------
+         _at |
+   (2 vs 1)  |          1      302.90     0.0000
+   (3 vs 2)  |          1      303.50     0.0000
+   (4 vs 3)  |          1      304.10     0.0000
+   (5 vs 4)  |          1      304.70     0.0000
+   (6 vs 5)  |          1      305.29     0.0000
+      Joint  |  (not testable)
+------------------------------------------------
+
+--------------------------------------------------------------
+             |   Observed   Bootstrap          Percentile
+             |   contrast   std. err.     [95% conf. interval]
+-------------+------------------------------------------------
+         _at |
+   (2 vs 1)  |   .0035415   .0002035      .0031074    .0038567
+   (3 vs 2)  |   .0035365    .000203      .0031037    .0038516
+   (4 vs 3)  |   .0035421   .0002031      .0031092    .0038582
+   (5 vs 4)  |   .0035584   .0002039      .0031242    .0038764
+   (6 vs 5)  |   .0035856   .0002052      .0031488    .0039065
+--------------------------------------------------------------
+
+. *
+. * PROBLEM 20
+. *
+. sum bfyrearn, detail
+
+                          bfyrearn
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs               5,725
+25%            0              0       Sum of wgt.       5,725
+
+50%         .098                      Mean           1.947411
+                        Largest       Std. dev.      3.245328
+75%            3           29.8
+90%        6.325             30       Variance       10.53215
+95%          8.6          32.76       Skewness       2.738185
+99%        13.44             46       Kurtosis       16.93996
+
+. margins, at(bfyrearn =(50)) vce(bootstrap, seed(10101) reps(50))
+(running margins on estimation sample)
+
+Bootstrap replications (50)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+
+Adjusted predictions                                     Number of obs = 5,725
+                                                         Replications  =    50
+
+Expression: Mean function, predict()
+At: bfyrearn = 50
+
+------------------------------------------------------------------------------
+             |   Observed   Bootstrap                          Percentile
+             |     margin   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       _cons |   8.120503   .1102034    73.69   0.000     7.865448    8.291044
+------------------------------------------------------------------------------
+
+. *
+. * CLOSE LOG FILE AND END.
+. *
+. log close
+      name:  <unnamed>
+       log:  U:\private\old-d\courses - wi\econ 705\2022 fall\\PROBLEM SETS\Economics 705 Fall 2022 Problem Set 2.log
+  log type:  text
+ closed on:   5 Nov 2022, 10:48:00
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
